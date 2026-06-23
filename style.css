@@ -529,16 +529,17 @@ h1, h2, h3, h4, h5, h6 {
 .data-table th {
     background-color: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color);
-    padding: 16px 20px;
+    padding: 8px 12px;
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .data-table td {
-    padding: 16px 20px;
+    padding: 8px 12px;
     border: 1px solid var(--border-color);
     vertical-align: middle;
+    font-size: 12px;
 }
 
 .data-table tbody tr:hover td {

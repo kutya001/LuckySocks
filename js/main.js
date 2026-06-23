@@ -67,8 +67,13 @@ function renderCurrentTab(subTab = null) {
             break;
         case 'orders':
             pageTitle.textContent = 'Заказы покупателей';
-            pageSubtitle.textContent = 'Продажи / Реализация';
+            pageSubtitle.textContent = 'Продажи';
             docMap.orders.renderTable(viewport);
+            break;
+        case 'realizations':
+            pageTitle.textContent = 'Реализация продукции';
+            pageSubtitle.textContent = 'Отгрузка готовой продукции со склада';
+            docMap.realizations.renderTable(viewport);
             break;
         case 'specifications':
             pageTitle.textContent = 'Спецификации';
@@ -81,7 +86,7 @@ function renderCurrentTab(subTab = null) {
             docMap.planning.renderTable(viewport);
             break;
         case 'releases':
-            pageTitle.textContent = 'Выпуск полуфабрикатов';
+            pageTitle.textContent = 'Вязальный - выпуск';
             pageSubtitle.textContent = 'Выработка вязального цеха (ПФ)';
             docMap.releases.renderTable(viewport);
             break;

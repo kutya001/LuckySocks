@@ -29,7 +29,7 @@ window.renderAboutApp = function(container) {
                     </p>
                     
                     <!-- Steps Grid Links -->
-                    <div class="flow-steps-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <div class="flow-steps-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
                         <div class="flow-step-card active" data-step="1" style="cursor: pointer; padding: 12px; border: 1px solid var(--primary); background: var(--primary-glow); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
                             <i class="ph ph-shopping-cart" style="font-size: 24px; color: var(--primary-hover); display: block; margin: 0 auto 6px;"></i>
                             <strong style="font-size: 12px; display: block; color: var(--text-primary);">1. Заказ клиента</strong>
@@ -42,7 +42,7 @@ window.renderAboutApp = function(container) {
                         </div>
                         <div class="flow-step-card" data-step="3" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
                             <i class="ph ph-needle" style="font-size: 24px; color: var(--info); display: block; margin: 0 auto 6px;"></i>
-                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">3. Вязание (ПФ)</strong>
+                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">3. Вязальный - выпуск</strong>
                             <span style="font-size: 10px; color: var(--text-secondary);">Станки & Операторы</span>
                         </div>
                         <div class="flow-step-card" data-step="4" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
@@ -56,8 +56,13 @@ window.renderAboutApp = function(container) {
                             <span style="font-size: 10px; color: var(--text-secondary);">Качество & Сорта</span>
                         </div>
                         <div class="flow-step-card" data-step="6" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
+                            <i class="ph ph-truck" style="font-size: 24px; color: var(--success); display: block; margin: 0 auto 6px;"></i>
+                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">6. Реализация</strong>
+                            <span style="font-size: 10px; color: var(--text-secondary);">Склад & Отгрузка</span>
+                        </div>
+                        <div class="flow-step-card" data-step="7" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
                             <i class="ph ph-presentation-chart" style="font-size: 24px; color: var(--success); display: block; margin: 0 auto 6px;"></i>
-                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">6. Аналитика</strong>
+                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">7. Аналитика</strong>
                             <span style="font-size: 10px; color: var(--text-secondary);">Транзакции & ROI</span>
                         </div>
                     </div>
@@ -129,9 +134,9 @@ window.renderAboutApp = function(container) {
                     <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--primary-glow); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
                         <i class="ph-bold ph-git-merge" style="font-size: 20px; color: var(--primary-hover);"></i>
                     </div>
-                    <h4 style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Жесткие переходы и блокировка брака</h4>
+                    <h4 style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Жесткие переходы и живой контроль</h4>
                     <p class="text-secondary" style="font-size: 12px; line-height: 1.5; margin: 0;">
-                        Сотрудники физически не могут ввести прошив больше, чем связано на оборудовании, или упаковку больше, чем прошито. Все расхождения блокируются автоматически на корню.
+                        Живой контроль остатков в отдельных колонках при вводе спецификаций. Сотрудники физически не могут ввести объем больше, чем обработано на предыдущем этапе.
                     </p>
                 </div>
                 <div class="card" style="padding: 20px; transition: transform 0.2s;">
@@ -179,31 +184,38 @@ window.renderAboutApp = function(container) {
             title: "Планирование производства (Запуск в производство)",
             icon: "ph-calendar",
             color: "var(--info)",
-            desc: "Бригадир распределяет позиции заказа по вязальным линиям цеха. Программа автоматически генерирует уникальные сквозные партионные плановые номера (формат <code>OrderDigits/LineNum-Month</code>), которые привязываются ко всей цепочке документов.",
-            roi: "Исключение человеческого фактора при распределении заданий, прозрачная очередность партий."
+            desc: "Бригадир распределяет позиции заказа по вязальным линиям цеха. Для удобства работы в таблице спецификации выводятся 3 колонки: сколько заказано, сколько в планах и остаток. Автоматически генерируются уникальные плановые номера партий.",
+            roi: "Мгновенный контроль запланированного объема прямо во время заполнения плана."
         },
         3: {
-            title: "Выпуск полуфабрикатов (Вязальный цех - ПФ)",
+            title: "Вязальный - выпуск (Вязальный цех - ПФ)",
             icon: "ph-needle",
             color: "var(--info)",
-            desc: "Операторы регистрируют выпуск сырой чулочной заготовки (полуфабриката) по станкам. Программа жестко контролирует плановый объем: <strong>нельзя выпустить штук ПФ больше, чем запланировано пар * 2</strong>.",
+            desc: "Операторы регистрируют выпуск сырой чулочной заготовки (полуфабриката) по станкам. В спецификации выводится живой контроль остатка: сколько запланировано, сколько уже связано и остаток к выпуску. Система блокирует перепроизводство заготовок.",
             roi: "Предотвращает бесконтрольное перепроизводство заготовок на 100%, экономя сырье."
         },
         4: {
             title: "Прошив мыска (Швейный цех - ГП)",
             icon: "ph-scissors",
             color: "var(--primary-hover)",
-            desc: "Швеи проводят финишную сборку изделий (мысок). Система проверяет количество: <strong>нельзя сдать прошитых пар больше, чем фактически связано заготовок ПФ / 2</strong>.",
+            desc: "Швеи проводят финишную сборку изделий (мысок). Система выводит в спецификации сравнение с вязанием (вязано в парах, уже прошито, остаток) и строго блокирует превышение прошитых пар над фактически связанным объемом.",
             roi: "Мгновенное выявление скрытых потерь полуфабрикатов на межоперационном переходе."
         },
         5: {
-            title: "Упаковка и сортировка (Склад готовой продукции)",
+            title: "Упаковка и сортировка (Сложное пакетирование)",
             icon: "ph-package",
             color: "var(--success)",
-            desc: "Приемка готовой продукции на склад с разделением по сортам (1-й сорт, 2-й сорт, 3-й сорт) на уровне линий. Система блокирует упаковку сверх прошитого объема.",
+            desc: "Приемка готовой продукции на склад с разделением по сортам (1-й сорт, 2-й сорт, 3-й сорт) на уровне линий. В спецификации выводится живой контроль: прошито пар по плану, уже упаковано, остаток. Блокирует превышение упаковки сверх прошива.",
             roi: "Оперативный анализ сортности в партии, контроль доли брака и точный складской баланс."
         },
         6: {
+            title: "Реализация продукции (Списание со склада)",
+            icon: "ph-truck",
+            color: "var(--success)",
+            desc: "Оформление отгрузки готовой продукции покупателю. Поддерживается отгрузка по заказам (с автозаполнением спецификации) и прямая продажа. На лету рассчитываются складские остатки: упаковано, уже отгружено, остаток на складе с блокировкой отгрузок в минус.",
+            roi: "Исключение пересортицы и отгрузки несуществующего товара, автоматический контроль остатков."
+        },
+        7: {
             title: "Сквозная аналитика и отслеживание транзакций",
             icon: "ph-presentation-chart",
             color: "var(--success)",

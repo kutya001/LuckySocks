@@ -175,6 +175,7 @@ const DEFAULT_STATE = {
         { id: 'rate_4', date: '2026-06-20', currency: 'KZT', rate: 0.19 },
         { id: 'rate_5', date: '2026-06-20', currency: 'CNY', rate: 12.05 }
     ],
+    realizations: [],
     settings: {
         companyName: 'LuckySocks',
         accountingCurrency: 'KGS',
@@ -202,6 +203,9 @@ function loadState() {
             }
             if (!state.rates) {
                 state.rates = JSON.parse(JSON.stringify(DEFAULT_STATE.rates));
+            }
+            if (!state.realizations) {
+                state.realizations = [];
             }
         } catch (e) {
             console.error("Ошибка парсинга LocalStorage. Загрузка демо-данных.", e);
@@ -307,4 +311,53 @@ window.getPackagedQtyForPlan = function(planNum, excludeDocId = null) {
         }
     });
     return packagedQtyPairs;
+};
+
+window.getProductIdForPlan = function(planNum) {
+    if (!state.planning) return null;
+    for (const pl of state.planning) {
+        for (const pi of pl.items) {
+            if (pi.planNum === planNum) {
+                return pi.productId;
+            }
+        }
+    }
+    return null;
+};
+
+window.getPackagedQtyForProduct = function(productId, excludeDocId = null) {
+    let total = 0;
+    if (!state.packagings) return 0;
+    state.packagings.forEach(pack => {
+        if (pack.id !== excludeDocId) {
+            pack.items.forEach(pi => {
+                const prodId = window.getProductIdForPlan(pi.planNum);
+                if (prodId === productId) {
+                    total += Number(pi.qty) || 0;
+                }
+            });
+        }
+    });
+    return total;
+};
+
+window.getRealizedQtyForProduct = function(productId, excludeDocId = null) {
+    let total = 0;
+    if (!state.realizations) return 0;
+    state.realizations.forEach(real => {
+        if (real.id !== excludeDocId) {
+            real.items.forEach(ri => {
+                if (ri.productId === productId) {
+                    total += Number(ri.qty) || 0;
+                }
+            });
+        }
+    });
+    return total;
+};
+
+window.getAvailableStockForProduct = function(productId, excludeDocId = null) {
+    const packaged = window.getPackagedQtyForProduct(productId);
+    const realized = window.getRealizedQtyForProduct(productId, excludeDocId);
+    return Math.max(0, packaged - realized);
 };

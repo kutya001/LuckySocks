@@ -8,6 +8,8 @@ class BaseEntityComponent {
         this.visibleColumns = this.loadColumnPreferences();
         this.sortColumn = null;
         this.sortDirection = null;
+        this.currentPage = 1;
+        this.rowsPerPage = parseInt(localStorage.getItem(`rows_per_page_${this.type}`)) || 10;
     }
 
     loadColumnPreferences() {
@@ -59,6 +61,35 @@ class BaseEntityComponent {
         const filteredList = this.getFilteredRecords();
         const visibleCols = this.columns.filter(c => this.visibleColumns[c.id]);
         
+        const totalRecords = filteredList.length;
+        const totalPages = Math.ceil(totalRecords / this.rowsPerPage) || 1;
+        
+        if (this.currentPage > totalPages) {
+            this.currentPage = totalPages;
+        }
+        if (this.currentPage < 1) {
+            this.currentPage = 1;
+        }
+        
+        const startIndex = (this.currentPage - 1) * this.rowsPerPage;
+        const endIndex = Math.min(startIndex + this.rowsPerPage, totalRecords);
+        const pageRecords = filteredList.slice(startIndex, endIndex);
+        
+        const startRecord = totalRecords === 0 ? 0 : startIndex + 1;
+        const endRecord = endIndex;
+
+        let pageButtonsHTML = '';
+        for (let p = 1; p <= totalPages; p++) {
+            const activeStyle = this.currentPage === p 
+                ? 'background: var(--primary); border-color: var(--primary); color: white; font-weight: bold;' 
+                : '';
+            pageButtonsHTML += `
+                <button class="btn btn-secondary pagination-btn page-num-btn" data-page="${p}" style="padding: 4px 10px; font-size: 11px; min-width: 28px; ${activeStyle}">
+                    ${p}
+                </button>
+            `;
+        }
+
         let html = `
             <div class="dir-toolbar" style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px; position: relative;">
                 <h3 style="margin: 0; font-size: 16px;">${this.title}</h3>
@@ -113,14 +144,14 @@ class BaseEntityComponent {
                         </tr>
                     </thead>
                     <tbody>
-                        ${filteredList.length === 0 ? `
+                        ${pageRecords.length === 0 ? `
                             <tr>
                                 <td colspan="${visibleCols.length + 1}" class="text-secondary" style="text-align: center; padding: 30px;">
                                     Записи не найдены
                                 </td>
                             </tr>
                         ` : ''}
-                        ${filteredList.map(record => `
+                        ${pageRecords.map(record => `
                             <tr class="clickable-row" data-id="${record.id}" style="cursor: pointer;">
                                 ${visibleCols.map(col => `
                                     <td>${this.getColumnValue(record, col.id)}</td>
@@ -135,6 +166,22 @@ class BaseEntityComponent {
                         `).join('')}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Toolbar -->
+            <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 12px; gap: 15px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="text-secondary">Показывать по:</span>
+                    <select class="form-control pagination-limit-select" style="width: 70px; padding: 4px 8px; height: auto; font-size: 12px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-sm);">
+                        ${[5, 10, 20, 50, 100].map(limit => `<option value="${limit}" ${this.rowsPerPage === limit ? 'selected' : ''}>${limit}</option>`).join('')}
+                    </select>
+                    <span class="text-secondary" style="margin-left: 10px;">Показано с ${startRecord} по ${endRecord} из ${totalRecords}</span>
+                </div>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <button class="btn btn-secondary pagination-btn prev-btn" ${this.currentPage === 1 ? 'disabled' : ''} style="padding: 4px 8px; font-size: 11px;"><i class="ph ph-caret-left"></i></button>
+                    ${pageButtonsHTML}
+                    <button class="btn btn-secondary pagination-btn next-btn" ${this.currentPage === totalPages ? 'disabled' : ''} style="padding: 4px 8px; font-size: 11px;"><i class="ph ph-caret-right"></i></button>
+                </div>
             </div>
         `;
         viewport.innerHTML = html;
@@ -340,6 +387,7 @@ class BaseEntityComponent {
                 this.sortDirection = null;
             }
             popup.style.display = 'none';
+            this.currentPage = 1;
             this.renderTable(this.currentViewport);
         });
 
@@ -355,6 +403,7 @@ class BaseEntityComponent {
                 this.activeFilters[colId] = checkedVals;
             }
             popup.style.display = 'none';
+            this.currentPage = 1;
             this.renderTable(this.currentViewport);
         });
 
@@ -456,6 +505,43 @@ class BaseEntityComponent {
                 this.openEditModal(null);
             });
         }
+
+        // Pagination Limit select
+        const limitSelect = viewport.querySelector('.pagination-limit-select');
+        if (limitSelect) {
+            limitSelect.addEventListener('change', (e) => {
+                this.rowsPerPage = parseInt(e.target.value);
+                localStorage.setItem(`rows_per_page_${this.type}`, this.rowsPerPage);
+                this.currentPage = 1;
+                this.renderTable(viewport);
+            });
+        }
+
+        // Prev page button
+        const prevBtn = viewport.querySelector('.prev-btn');
+        if (prevBtn && !prevBtn.disabled) {
+            prevBtn.addEventListener('click', () => {
+                this.currentPage--;
+                this.renderTable(viewport);
+            });
+        }
+
+        // Next page button
+        const nextBtn = viewport.querySelector('.next-btn');
+        if (nextBtn && !nextBtn.disabled) {
+            nextBtn.addEventListener('click', () => {
+                this.currentPage++;
+                this.renderTable(viewport);
+            });
+        }
+
+        // Page number buttons
+        viewport.querySelectorAll('.page-num-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.currentPage = parseInt(btn.getAttribute('data-page'));
+                this.renderTable(viewport);
+            });
+        });
     }
 
     openViewModal(id) {

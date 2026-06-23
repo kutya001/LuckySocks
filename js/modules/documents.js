@@ -722,6 +722,9 @@ class PlanningDocument extends BaseDocument {
                                 <th>Готовая продукция (из Заказа)</th>
                                 <th>Производственная Линия</th>
                                 <th class="col-qty">Кол-во (пар)</th>
+                                <th style="width: 80px;">Заказано (пар)</th>
+                                <th style="width: 80px;">В планах (пар)</th>
+                                <th style="width: 80px;">Осталось (пар)</th>
                                 <th style="width: 130px;">Плановый номер</th>
                                 <th class="col-btn"></th>
                             </tr>
@@ -761,7 +764,7 @@ class PlanningDocument extends BaseDocument {
                     <td>
                         <select class="form-control row-product-select" required>
                             <option value="">-- Выберите продукт --</option>
-                            ${orderedProducts.map(p => `<option value="${p.id}" ${rowVal && rowVal.productId === p.id ? 'selected' : ''}>${p.name} (Заказ: ${p.totalQty} пар)</option>`).join('')}
+                            ${orderedProducts.map(p => `<option value="${p.id}" ${rowVal && rowVal.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
                         </select>
                     </td>
                     <td>
@@ -772,6 +775,15 @@ class PlanningDocument extends BaseDocument {
                     </td>
                     <td class="col-qty">
                         <input type="text" class="form-control row-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '1 000'}" required>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-ordered-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-planned-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-remain-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
                     </td>
                     <td>
                         <input type="text" class="form-control row-plannum" value="${rowVal ? rowVal.planNum : ''}" required readonly style="text-align: center; background: rgba(255,255,255,0.03);">
@@ -787,6 +799,7 @@ class PlanningDocument extends BaseDocument {
 
                 const lineSelect = tr.querySelector('.row-line-select');
                 const planNumInput = tr.querySelector('.row-plannum');
+                const productSelect = tr.querySelector('.row-product-select');
                 
                 const updatePlanNum = () => {
                     const orderNumDigits = orderObj.num.replace(/\D/g, '');
@@ -797,10 +810,38 @@ class PlanningDocument extends BaseDocument {
                     planNumInput.value = `${orderNumDigits}/${lineNum}-${month}`;
                 };
 
+                const updateHelperColumns = () => {
+                    const prodId = productSelect.value;
+                    let ordered = 0;
+                    let planned = 0;
+                    
+                    if (prodId) {
+                        ordered = orderObj.items.filter(it => it.productId === prodId).reduce((s, it) => s + (Number(it.qty) || 0), 0);
+                        
+                        // sum of planned quantities for this product and this order in other docs
+                        state.planning.forEach(pl => {
+                            if (pl.id !== id && pl.orderId === ordId) {
+                                pl.items.forEach(pi => {
+                                    if (pi.productId === prodId) {
+                                        planned += Number(pi.qty) || 0;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    
+                    tr.querySelector('.row-ordered-qty').value = formatQty(ordered);
+                    tr.querySelector('.row-planned-qty').value = formatQty(planned);
+                    tr.querySelector('.row-remain-qty').value = formatQty(Math.max(0, ordered - planned));
+                };
+
                 lineSelect.addEventListener('change', updatePlanNum);
                 dateInput.addEventListener('change', updatePlanNum);
+                productSelect.addEventListener('change', updateHelperColumns);
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
+                
                 if (!rowVal) updatePlanNum();
+                updateHelperColumns();
             };
 
             orderSelect.addEventListener('change', () => {
@@ -862,7 +903,7 @@ class PlanningDocument extends BaseDocument {
 
 class ReleaseDocument extends BaseDocument {
     constructor() {
-        super('releases', 'Выпуск полуфабрикатов (Вязание)');
+        super('releases', 'Вязальный - выпуск');
     }
 
     getColumns() {
@@ -959,6 +1000,9 @@ class ReleaseDocument extends BaseDocument {
                                 <th>Станок оператора</th>
                                 <th>Плановый номер</th>
                                 <th class="col-price">Выпуск (шт)</th>
+                                <th style="width: 80px;">План (шт)</th>
+                                <th style="width: 80px;">Связано (шт)</th>
+                                <th style="width: 80px;">Осталось (шт)</th>
                                 <th class="col-btn"></th>
                             </tr>
                         </thead>
@@ -990,7 +1034,7 @@ class ReleaseDocument extends BaseDocument {
                 state.planning.forEach(pl => {
                     pl.items.forEach(it => {
                         const prod = state.nomenclature.find(n => n.id === it.productId) || {};
-                        activePlans.push({ code: it.planNum, desc: `${it.planNum} — ${prod.name} (${it.qty} пар)` });
+                        activePlans.push({ code: it.planNum, desc: `${it.planNum} — ${prod.name}` });
                     });
                 });
 
@@ -1011,6 +1055,15 @@ class ReleaseDocument extends BaseDocument {
                     <td class="col-price">
                         <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatQty(rowVal.qty) : '1 000'}" required>
                     </td>
+                    <td>
+                        <input type="text" class="form-control row-planned-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-knitted-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-remain-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
@@ -1020,7 +1073,27 @@ class ReleaseDocument extends BaseDocument {
                 const rowQtyInput = tr.querySelector('.row-qty');
                 setupNumericFormatting(rowQtyInput, 'qty');
                 
+                const planSelect = tr.querySelector('.row-plannum-select');
+                
+                const updateHelperColumns = () => {
+                    const planNum = planSelect.value;
+                    let planned = 0;
+                    let knitted = 0;
+                    
+                    if (planNum) {
+                        planned = window.getPlannedQtyForPlan(planNum) * 2; // in pieces
+                        knitted = window.getKnittedQtyForPlan(planNum, id); // in pieces
+                    }
+                    
+                    tr.querySelector('.row-planned-qty').value = formatQty(planned);
+                    tr.querySelector('.row-knitted-qty').value = formatQty(knitted);
+                    tr.querySelector('.row-remain-qty').value = formatQty(Math.max(0, planned - knitted));
+                };
+
+                planSelect.addEventListener('change', updateHelperColumns);
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
+                
+                updateHelperColumns();
             };
 
             opSelect.addEventListener('change', () => {
@@ -1200,6 +1273,9 @@ class SewingDocument extends BaseDocument {
                                 <th>Швея</th>
                                 <th>Плановый номер (заготовка ПФ)</th>
                                 <th class="col-price">Прошито (пар)</th>
+                                <th style="width: 80px;">Связано (пар)</th>
+                                <th style="width: 80px;">Прошито (пар)</th>
+                                <th style="width: 80px;">Осталось (пар)</th>
                                 <th class="col-btn"></th>
                             </tr>
                         </thead>
@@ -1232,7 +1308,7 @@ class SewingDocument extends BaseDocument {
                     pl.items.forEach(it => {
                         if (it.lineId === lineId) {
                             const prod = state.nomenclature.find(n => n.id === it.productId) || {};
-                            activePlans.push({ code: it.planNum, desc: `${it.planNum} — ${prod.name} (${it.qty} пар)` });
+                            activePlans.push({ code: it.planNum, desc: `${it.planNum} — ${prod.name}` });
                         }
                     });
                 });
@@ -1254,6 +1330,15 @@ class SewingDocument extends BaseDocument {
                     <td class="col-price">
                         <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatQty(rowVal.qty) : '500'}" required>
                     </td>
+                    <td>
+                        <input type="text" class="form-control row-knitted-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-sewn-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-remain-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
@@ -1263,7 +1348,27 @@ class SewingDocument extends BaseDocument {
                 const rowQtyInput = tr.querySelector('.row-qty');
                 setupNumericFormatting(rowQtyInput, 'qty');
                 
+                const planSelect = tr.querySelector('.row-plannum-select');
+                
+                const updateHelperColumns = () => {
+                    const planNum = planSelect.value;
+                    let knitted = 0;
+                    let sewn = 0;
+                    
+                    if (planNum) {
+                        knitted = Math.floor(window.getKnittedQtyForPlan(planNum) / 2); // in pairs
+                        sewn = window.getSewnQtyForPlan(planNum, id); // in pairs
+                    }
+                    
+                    tr.querySelector('.row-knitted-qty').value = formatQty(knitted);
+                    tr.querySelector('.row-sewn-qty').value = formatQty(sewn);
+                    tr.querySelector('.row-remain-qty').value = formatQty(Math.max(0, knitted - sewn));
+                };
+
+                planSelect.addEventListener('change', updateHelperColumns);
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
+                
+                updateHelperColumns();
             };
 
             lineSelect.addEventListener('change', () => {
@@ -1429,6 +1534,9 @@ class PackagingDocument extends BaseDocument {
                                 <th>Плановый номер (готовая продукция)</th>
                                 <th style="width: 150px;">Сорт</th>
                                 <th class="col-price">Упаковано (пар)</th>
+                                <th style="width: 80px;">Прошито (пар)</th>
+                                <th style="width: 80px;">Упаковано (пар)</th>
+                                <th style="width: 80px;">Осталось (пар)</th>
                                 <th class="col-btn"></th>
                             </tr>
                         </thead>
@@ -1455,7 +1563,7 @@ class PackagingDocument extends BaseDocument {
                 state.planning.forEach(pl => {
                     pl.items.forEach(it => {
                         const prod = state.nomenclature.find(n => n.id === it.productId) || {};
-                        activePlans.push({ code: it.planNum, desc: `${it.planNum} — ${prod.name} (${it.qty} пар)` });
+                        activePlans.push({ code: it.planNum, desc: `${it.planNum} — ${prod.name}` });
                     });
                 });
 
@@ -1477,6 +1585,15 @@ class PackagingDocument extends BaseDocument {
                     <td class="col-price">
                         <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatQty(rowVal.qty) : '500'}" required>
                     </td>
+                    <td>
+                        <input type="text" class="form-control row-sewn-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-packaged-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-remain-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
@@ -1486,7 +1603,27 @@ class PackagingDocument extends BaseDocument {
                 const rowQtyInput = tr.querySelector('.row-qty');
                 setupNumericFormatting(rowQtyInput, 'qty');
                 
+                const planSelect = tr.querySelector('.row-plannum-select');
+                
+                const updateHelperColumns = () => {
+                    const planNum = planSelect.value;
+                    let sewn = 0;
+                    let packaged = 0;
+                    
+                    if (planNum) {
+                        sewn = window.getSewnQtyForPlan(planNum); // in pairs
+                        packaged = window.getPackagedQtyForPlan(planNum, id); // in pairs
+                    }
+                    
+                    tr.querySelector('.row-sewn-qty').value = formatQty(sewn);
+                    tr.querySelector('.row-packaged-qty').value = formatQty(packaged);
+                    tr.querySelector('.row-remain-qty').value = formatQty(Math.max(0, sewn - packaged));
+                };
+
+                planSelect.addEventListener('change', updateHelperColumns);
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
+                
+                updateHelperColumns();
             };
 
             if (item && item.items.length > 0) {
@@ -1559,6 +1696,452 @@ class PackagingDocument extends BaseDocument {
     }
 }
 
+class RealizationDocument extends BaseDocument {
+    constructor() {
+        super('realizations', 'Реализация готовой продукции');
+    }
+
+    getColumns() {
+        return [
+            { id: 'date', label: 'Дата реализации', filterable: true },
+            { id: 'num', label: 'Номер', filterable: true },
+            { id: 'clientName', label: 'Контрагент', filterable: true },
+            { id: 'contractNum', label: 'Договор / Валюта', filterable: true },
+            { id: 'sum', label: 'Сумма', filterable: false },
+            { id: 'sumAcc', label: 'Сумма в уч. вал.', filterable: false }
+        ];
+    }
+
+    getColumnValue(record, colId) {
+        if (colId === 'date') return record.date;
+        if (colId === 'num') return `<strong>${record.num}</strong>`;
+        if (colId === 'clientName') {
+            const client = state.counterparties.find(c => c.id === record.counterpartyId) || {};
+            return client.name || '—';
+        }
+        if (colId === 'contractNum') {
+            const contract = state.contracts.find(c => c.id === record.contractId) || {};
+            return `<span class="badge badge-success">${contract.num || '—'} (${record.currency})</span>`;
+        }
+        if (colId === 'sum') {
+            const sum = record.items.reduce((acc, i) => acc + (Number(i.sum) || 0), 0);
+            return `<strong>${formatMoney(sum)} ${record.currency}</strong>`;
+        }
+        if (colId === 'sumAcc') {
+            const sum = record.items.reduce((acc, i) => acc + (Number(i.sum) || 0), 0);
+            const sumAcc = window.convertToAccounting(sum, record.currency, record.date);
+            return `<strong>${formatMoney(sumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</strong>`;
+        }
+        return record[colId] || '';
+    }
+
+    getModalViewBody(id) {
+        const item = this.getRecords().find(x => x.id === id);
+        const client = state.counterparties.find(c => c.id === item.counterpartyId) || {};
+        const contract = state.contracts.find(c => c.id === item.contractId) || {};
+        const totalSum = item.items.reduce((s, i) => s + Number(i.sum), 0);
+        const totalSumAcc = window.convertToAccounting(totalSum, item.currency, item.date);
+        return `
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Номер реализации</span>
+                        <span class="view-field-value">${item.num}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Дата реализации</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
+                </div>
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Контрагент</span>
+                        <span class="view-field-value">${client.name || '—'}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Договор</span>
+                        <span class="view-field-value"><span class="badge badge-success">${contract.num || '—'} (${item.currency})</span></span>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Спецификация отгрузки</span>
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Номенклатура ГП</th>
+                                <th>Характеристика</th>
+                                <th style="text-align: right; width: 120px;">Кол-во (пар / шт)</th>
+                                <th style="text-align: right; width: 140px;">Цена (пар / шт)</th>
+                                <th style="text-align: right; width: 120px;">Сумма</th>
+                                <th style="text-align: right; width: 120px;">Сумма в уч. вал.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${item.items.map(it => {
+                                const prod = state.nomenclature.find(n => n.id === it.productId) || {};
+                                const sumAcc = window.convertToAccounting(it.sum, item.currency, item.date);
+                                const qtyPcs = it.qty * 2;
+                                const pricePc = it.price / 2;
+                                return `
+                                    <tr>
+                                        <td>${prod.name || '—'}</td>
+                                        <td class="text-secondary">${it.char || '—'}</td>
+                                        <td style="text-align: right;">${formatQty(it.qty)} пар<br><small class="text-muted">${formatQty(qtyPcs)} шт</small></td>
+                                        <td style="text-align: right;">${formatMoney(it.price)} ${item.currency}<br><small class="text-muted">${formatMoney(pricePc)} за шт</small></td>
+                                        <td style="text-align: right;"><strong>${formatMoney(it.sum)} ${item.currency}</strong></td>
+                                        <td style="text-align: right;"><strong>${formatMoney(sumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</strong></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                            <tr style="background: rgba(255,255,255,0.02); font-weight: bold;">
+                                <td colspan="4" style="text-align: right;">Итого:</td>
+                                <td style="text-align: right; color: var(--success);">${formatMoney(totalSum)} ${item.currency}</td>
+                                <td style="text-align: right; color: var(--success);">${formatMoney(totalSumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    getModalEditBody(id) {
+        const doc = id ? this.getRecords().find(x => x.id === id) : { date: new Date().toISOString().split('T')[0], num: '', counterpartyId: '', contractId: '', orderId: '', currency: 'KGS', items: [] };
+        return `
+            <form id="doc-form">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">Дата реализации</label>
+                        <input type="date" class="form-control" name="date" id="realization-date-input" value="${doc.date}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Номер документа</label>
+                        <input type="text" class="form-control" name="num" id="realization-num-input" value="${doc.num}" required placeholder="например, РЛ-001">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Заказ-основание (необязательно)</label>
+                        <select class="form-control" name="orderId" id="realization-order-select">
+                            <option value="">-- Прямая продажа (без заказа) --</option>
+                            ${state.orders.map(o => `<option value="${o.id}" ${o.id === doc.orderId ? 'selected' : ''}>${o.num} (${(state.counterparties.find(c => c.id === o.counterpartyId) || {}).name || ''})</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">Контрагент</label>
+                        <select class="form-control" name="counterpartyId" id="realization-counterparty-select" required>
+                            <option value="">-- Выберите контрагента --</option>
+                            ${state.counterparties.map(c => `<option value="${c.id}" ${c.id === doc.counterpartyId ? 'selected' : ''}>${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Договор</label>
+                        <select class="form-control" name="contractId" id="realization-contract-select" required>
+                            <option value="">-- Выберите договор --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Валюта</label>
+                        <input type="text" class="form-control" id="realization-currency-input" name="currency" value="${doc.currency}" readonly style="background: rgba(255,255,255,0.03);">
+                    </div>
+                </div>
+
+                <h4 style="margin: 20px 0 10px 0;">Товары отгрузки & Контроль складских остатков</h4>
+                <div class="table-wrapper">
+                    <table class="table-form" id="realization-items-table">
+                        <thead>
+                            <tr>
+                                <th>Номенклатура ГП</th>
+                                <th>Характеристика</th>
+                                <th class="col-qty">Кол-во (пар)</th>
+                                <th style="width: 80px;">Упаковано (пар)</th>
+                                <th style="width: 80px;">Реализовано (пар)</th>
+                                <th style="width: 80px;">Остаток (пар)</th>
+                                <th class="col-price">Цена (за пару)</th>
+                                <th class="col-sum">Сумма</th>
+                                <th class="col-sum">Сумма в уч. вал.</th>
+                                <th class="col-btn"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loaded in afterModalOpen -->
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-secondary" id="btn-realization-add-line" style="margin-top: 8px;">
+                    <i class="ph ph-plus"></i>Добавить товар
+                </button>
+            </form>
+        `;
+    }
+
+    afterModalOpen(id, mode) {
+        if (mode === 'edit') {
+            const orderSelect = document.getElementById('realization-order-select');
+            const counterpartySelect = document.getElementById('realization-counterparty-select');
+            const contractSelect = document.getElementById('realization-contract-select');
+            const currencyInput = document.getElementById('realization-currency-input');
+            const dateInput = document.getElementById('realization-date-input');
+            const itemsTableBody = document.querySelector('#realization-items-table tbody');
+            const item = id ? this.getRecords().find(x => x.id === id) : null;
+
+            const updateContracts = () => {
+                const clientId = counterpartySelect.value;
+                const prevValue = contractSelect.value;
+                contractSelect.innerHTML = '<option value="">-- Выберите договор --</option>';
+                if (clientId) {
+                    const clientContracts = state.contracts.filter(c => c.counterpartyId === clientId);
+                    clientContracts.forEach(c => {
+                        contractSelect.innerHTML += `<option value="${c.id}">${c.num} (${c.currency})</option>`;
+                    });
+                }
+                if (prevValue) contractSelect.value = prevValue;
+                updateCurrency();
+            };
+
+            const updateCurrency = () => {
+                const contractId = contractSelect.value;
+                if (contractId) {
+                    const contract = state.contracts.find(c => c.id === contractId);
+                    currencyInput.value = contract ? contract.currency : 'KGS';
+                } else {
+                    currencyInput.value = 'KGS';
+                }
+                updateAllSums();
+            };
+
+            const updateAllSums = () => {
+                const trs = itemsTableBody.querySelectorAll('tr');
+                trs.forEach(tr => {
+                    if (tr.querySelector('.row-item-qty')) {
+                        const qty = parseFormattedNumber(tr.querySelector('.row-item-qty').value);
+                        const price = parseFormattedNumber(tr.querySelector('.row-item-price').value);
+                        const sum = qty * price;
+                        tr.querySelector('.row-item-sum').value = formatMoney(sum);
+                        
+                        const date = dateInput.value;
+                        const curr = currencyInput.value || 'KGS';
+                        const sumAcc = window.convertToAccounting(sum, curr, date);
+                        tr.querySelector('.row-item-sum-acc').value = formatMoney(sumAcc);
+                    }
+                });
+            };
+
+            counterpartySelect.addEventListener('change', updateContracts);
+            contractSelect.addEventListener('change', updateCurrency);
+            dateInput.addEventListener('change', updateAllSums);
+
+            const addRow = (rowVal = null) => {
+                const tr = document.createElement('tr');
+                const products = state.nomenclature.filter(n => n.type === 'ГП' || n.type === 'КП');
+
+                const initialDate = dateInput.value;
+                const initialCurr = currencyInput.value || 'KGS';
+                const initialSum = rowVal ? rowVal.sum : (rowVal ? rowVal.qty * rowVal.price : 0);
+                const initialSumAcc = window.convertToAccounting(initialSum, initialCurr, initialDate);
+
+                tr.innerHTML = `
+                    <td>
+                        <select class="form-control row-item-product" required>
+                            <option value="">-- Выберите --</option>
+                            ${products.map(p => `<option value="${p.id}" ${rowVal && rowVal.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-item-char" value="${rowVal ? rowVal.char : ''}" required placeholder="Размер, цвет...">
+                    </td>
+                    <td class="col-qty">
+                        <input type="text" class="form-control row-item-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '100'}" required>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-packaged-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-realized-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control row-remain-qty" style="background: rgba(255,255,255,0.03); text-align: right; font-size: 11px;" readonly value="0">
+                    </td>
+                    <td class="col-price">
+                        <input type="text" class="form-control row-item-price col-price" value="${rowVal ? formatMoney(rowVal.price) : '50'}" required>
+                    </td>
+                    <td class="col-sum">
+                        <input type="text" class="form-control row-item-sum col-sum" value="${formatMoney(initialSum)}" readonly style="background: transparent; border-color: transparent;">
+                    </td>
+                    <td class="col-sum">
+                        <input type="text" class="form-control row-item-sum-acc col-sum" value="${formatMoney(initialSumAcc)}" readonly style="background: transparent; border-color: transparent;">
+                    </td>
+                    <td class="col-btn">
+                        <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
+                    </td>
+                `;
+                itemsTableBody.appendChild(tr);
+
+                const productSelect = tr.querySelector('.row-item-product');
+                const qtyInput = tr.querySelector('.row-item-qty');
+                const priceInput = tr.querySelector('.row-item-price');
+                const sumInput = tr.querySelector('.row-item-sum');
+                const sumAccInput = tr.querySelector('.row-item-sum-acc');
+
+                const updateRowSum = () => {
+                    const qty = parseFormattedNumber(qtyInput.value);
+                    const price = parseFormattedNumber(priceInput.value);
+                    const sum = qty * price;
+                    sumInput.value = formatMoney(sum);
+                    
+                    const date = dateInput.value;
+                    const currency = currencyInput.value || 'KGS';
+                    const sumAcc = window.convertToAccounting(sum, currency, date);
+                    sumAccInput.value = formatMoney(sumAcc);
+                };
+
+                const updateHelperColumns = () => {
+                    const prodId = productSelect.value;
+                    let packaged = 0;
+                    let realized = 0;
+                    if (prodId) {
+                        packaged = window.getPackagedQtyForProduct(prodId);
+                        realized = window.getRealizedQtyForProduct(prodId, id);
+                    }
+                    tr.querySelector('.row-packaged-qty').value = formatQty(packaged);
+                    tr.querySelector('.row-realized-qty').value = formatQty(realized);
+                    tr.querySelector('.row-remain-qty').value = formatQty(Math.max(0, packaged - realized));
+                };
+
+                qtyInput.addEventListener('input', updateRowSum);
+                priceInput.addEventListener('input', updateRowSum);
+                productSelect.addEventListener('change', updateHelperColumns);
+                
+                setupNumericFormatting(qtyInput, 'qty');
+                setupNumericFormatting(priceInput, 'price');
+
+                updateRowSum();
+                updateHelperColumns();
+                
+                tr.querySelector('.btn-remove-row').addEventListener('click', () => {
+                    tr.remove();
+                    updateAllSums();
+                });
+            };
+
+            orderSelect.addEventListener('change', () => {
+                const ordId = orderSelect.value;
+                if (ordId) {
+                    const orderObj = state.orders.find(o => o.id === ordId);
+                    if (orderObj) {
+                        counterpartySelect.value = orderObj.counterpartyId;
+                        updateContracts();
+                        contractSelect.value = orderObj.contractId;
+                        updateCurrency();
+                        
+                        itemsTableBody.innerHTML = '';
+                        orderObj.items.forEach(it => {
+                            addRow({
+                                productId: it.productId,
+                                char: it.char,
+                                qty: it.qty,
+                                price: it.price
+                            });
+                        });
+                    }
+                } else {
+                    counterpartySelect.value = '';
+                    updateContracts();
+                    contractSelect.value = '';
+                    updateCurrency();
+                    itemsTableBody.innerHTML = '';
+                }
+            });
+
+            document.getElementById('btn-realization-add-line').addEventListener('click', () => addRow());
+
+            if (item) {
+                counterpartySelect.value = item.counterpartyId;
+                updateContracts();
+                contractSelect.value = item.contractId;
+                updateCurrency();
+                
+                if (item.items && item.items.length > 0) {
+                    itemsTableBody.innerHTML = '';
+                    item.items.forEach(it => addRow(it));
+                }
+            } else {
+                updateContracts();
+            }
+        }
+    }
+
+    saveRow(id) {
+        const form = document.getElementById('doc-form');
+        if (!form.reportValidity()) return;
+
+        const cpId = form.counterpartyId.value;
+        const conId = form.contractId.value;
+        const orderId = form.orderId.value;
+        const currency = document.getElementById('realization-currency-input').value;
+        const date = form.date.value;
+        const num = form.num.value;
+
+        const itemRows = document.querySelectorAll('#realization-items-table tbody tr');
+        const items = [];
+        let validationError = null;
+
+        itemRows.forEach((tr, idx) => {
+            const productId = tr.querySelector('.row-item-product').value;
+            const char = tr.querySelector('.row-item-char').value;
+            const qty = parseFormattedNumber(tr.querySelector('.row-item-qty').value);
+            const price = parseFormattedNumber(tr.querySelector('.row-item-price').value);
+            const sum = qty * price;
+
+            const prodName = (state.nomenclature.find(n => n.id === productId) || {}).name || 'Номенклатура';
+            
+            // Check available stock
+            const packaged = window.getPackagedQtyForProduct(productId);
+            const realizedOther = window.getRealizedQtyForProduct(productId, id);
+            const available = Math.max(0, packaged - realizedOther);
+
+            if (qty > available) {
+                validationError = `Ошибка: Недостаточно товара на складе для "${prodName}"!\nДоступно к реализации: ${formatQty(available)} пар\nЗапрошено: ${formatQty(qty)} пар.`;
+            }
+
+            items.push({ id: 'item_' + idx + '_' + Date.now(), productId, char, qty, price, sum });
+        });
+
+        if (validationError) {
+            alert(validationError);
+            return;
+        }
+
+        if (items.length === 0) {
+            alert('Спецификация отгрузки должна содержать хотя бы одну позицию товаров!');
+            return;
+        }
+
+        const newDoc = {
+            id: id || 'real_' + Date.now(),
+            date,
+            num,
+            counterpartyId: cpId,
+            contractId: conId,
+            orderId: orderId || null,
+            currency,
+            items
+        };
+
+        if (id) {
+            const idx = state.realizations.findIndex(x => x.id === id);
+            state.realizations[idx] = newDoc;
+        } else {
+            state.realizations.push(newDoc);
+        }
+
+        saveState();
+        closeModal();
+        showToast('Документ реализации успешно сохранен!', 'success');
+        this.renderTable(this.currentViewport);
+    }
+}
+
 // Map of document classes
 const docMap = {
     'orders': new OrderDocument(),
@@ -1566,7 +2149,8 @@ const docMap = {
     'planning': new PlanningDocument(),
     'releases': new ReleaseDocument(),
     'sewings': new SewingDocument(),
-    'packagings': new PackagingDocument()
+    'packagings': new PackagingDocument(),
+    'realizations': new RealizationDocument()
 };
 
 
