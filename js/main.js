@@ -4,29 +4,87 @@ document.addEventListener('DOMContentLoaded', () => {
     loadState();
     updateBrandName();
 
+    // Replicate sidebar menu into the mobile drawer body
+    const drawerBody = document.querySelector('.mobile-drawer-body');
+    const navMenu = document.querySelector('.nav-menu');
+    if (drawerBody && navMenu) {
+        drawerBody.innerHTML = navMenu.innerHTML;
+    }
+
+    // Toggle mobile drawer shorka
+    const btnMobileMenu = document.getElementById('btn-mobile-menu');
+    const mobileDrawerOverlay = document.getElementById('mobile-drawer-overlay');
+    const mobileDrawerClose = document.getElementById('mobile-drawer-close');
+
+    if (btnMobileMenu && mobileDrawerOverlay) {
+        btnMobileMenu.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            mobileDrawerOverlay.classList.add('active');
+        });
+    }
+
+    if (mobileDrawerClose && mobileDrawerOverlay) {
+        mobileDrawerClose.addEventListener('click', () => {
+            mobileDrawerOverlay.classList.remove('active');
+        });
+    }
+
+    if (mobileDrawerOverlay) {
+        mobileDrawerOverlay.addEventListener('click', (e) => {
+            if (e.target === mobileDrawerOverlay) {
+                mobileDrawerOverlay.classList.remove('active');
+            }
+        });
+    }
+
+    // Bind click events on all nav items (now covers desktop, bottom nav, and drawer!)
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            currentTab = item.getAttribute('data-tab');
+            
+            // Highlight active tabs across all menus
+            document.querySelectorAll('.nav-item').forEach(i => {
+                if (i.getAttribute('data-tab') === currentTab) {
+                    i.classList.add('active');
+                } else {
+                    i.classList.remove('active');
+                }
+            });
+            
+            // If item was clicked inside mobile drawer, close the drawer
+            if (item.closest('.mobile-drawer')) {
+                mobileDrawerOverlay?.classList.remove('active');
+            }
+            
+            renderCurrentTab();
+        });
+    });
+
+    // Highlight current active tab on load
+    document.querySelectorAll('.nav-item').forEach(i => {
+        if (i.getAttribute('data-tab') === currentTab) {
+            i.classList.add('active');
+        } else {
+            i.classList.remove('active');
+        }
+    });
+
     // Check first visit
     const firstVisit = localStorage.getItem('socks_app_first_visit');
     if (!firstVisit) {
         localStorage.setItem('socks_app_first_visit', 'true');
         currentTab = 'about';
-    }
-
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            
-            currentTab = item.getAttribute('data-tab');
-            renderCurrentTab();
+        // Highlight active tab after first visit redirection
+        document.querySelectorAll('.nav-item').forEach(i => {
+            if (i.getAttribute('data-tab') === currentTab) {
+                i.classList.add('active');
+            } else {
+                i.classList.remove('active');
+            }
         });
-    });
-
-    // Highlight current active tab
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    const activeNavItem = document.querySelector(`.nav-item[data-tab="${currentTab}"]`);
-    if (activeNavItem) {
-        activeNavItem.classList.add('active');
     }
 
     document.getElementById('btn-reset-data')?.addEventListener('click', () => {

@@ -1,4 +1,8 @@
 class BaseEntityComponent {
+    isMobile() {
+        return window.innerWidth <= 768;
+    }
+
     constructor(type, title, stateKey) {
         this.type = type;
         this.title = title;
@@ -118,55 +122,96 @@ class BaseEntityComponent {
                 </div>
             </div>
 
-            <div class="table-wrapper table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            ${visibleCols.map(col => {
-                                const isFiltered = this.activeFilters[col.id] !== undefined;
-                                const isSorted = this.sortColumn === col.id;
-                                const sortIcon = isSorted ? (this.sortDirection === 'asc' ? '<i class="ph ph-caret-up sort-indicator"></i>' : '<i class="ph ph-caret-down sort-indicator"></i>') : '';
-                                const filterBtn = col.filterable !== false ? `
-                                    <button class="btn-excel-filter ${isFiltered ? 'active' : ''}" data-col="${col.id}" title="Сортировка и фильтр">
-                                        <i class="ph ph-funnel"></i>
-                                    </button>
-                                ` : '';
-                                return `
-                                    <th>
-                                        <div class="th-filter-wrapper">
-                                            <span>${col.label} ${sortIcon}</span>
-                                            ${filterBtn}
+            ${this.isMobile() ? `
+                <div class="card-list">
+                    ${pageRecords.length === 0 ? `
+                        <div class="text-secondary" style="text-align: center; padding: 30px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                            Записи не найдены
+                        </div>
+                    ` : ''}
+                    ${pageRecords.map(record => `
+                        <div class="mobile-card clickable-row" data-id="${record.id}">
+                            <div class="mobile-card-body">
+                                ${visibleCols.map((col, idx) => {
+                                    const val = this.getColumnValue(record, col.id);
+                                    if (idx === 0) {
+                                        return `
+                                            <div class="mobile-card-header">
+                                                <h4 style="margin: 0; font-size: 14px; color: var(--text-primary); font-weight: 600;">${val}</h4>
+                                            </div>
+                                        `;
+                                    }
+                                    return `
+                                        <div class="mobile-card-row">
+                                            <span class="mobile-card-label">${col.label}:</span>
+                                            <span class="mobile-card-value">${val}</span>
                                         </div>
-                                    </th>
-                                `;
-                            }).join('')}
-                            <th style="text-align: right; width: 100px;">Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${pageRecords.length === 0 ? `
+                                    `;
+                                }).join('')}
+                            </div>
+                            <div class="mobile-card-actions actions-cell">
+                                <button class="btn btn-secondary btn-icon-only edit-row-btn" data-id="${record.id}" title="Редактировать"><i class="ph ph-pencil-simple"></i></button>
+                                <button class="btn btn-danger btn-icon-only delete-row-btn" data-id="${record.id}" title="Удалить"><i class="ph ph-trash"></i></button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Floating Action Button for Mobile -->
+                <button class="fab-btn" id="fab-create-${this.type}" title="Создать">
+                    <i class="ph ph-plus"></i>
+                </button>
+            ` : `
+                <div class="table-wrapper table-responsive">
+                    <table class="data-table">
+                        <thead>
                             <tr>
-                                <td colspan="${visibleCols.length + 1}" class="text-secondary" style="text-align: center; padding: 30px;">
-                                    Записи не найдены
-                                </td>
+                                ${visibleCols.map(col => {
+                                    const isFiltered = this.activeFilters[col.id] !== undefined;
+                                    const isSorted = this.sortColumn === col.id;
+                                    const sortIcon = isSorted ? (this.sortDirection === 'asc' ? '<i class="ph ph-caret-up sort-indicator"></i>' : '<i class="ph ph-caret-down sort-indicator"></i>') : '';
+                                    const filterBtn = col.filterable !== false ? `
+                                        <button class="btn-excel-filter ${isFiltered ? 'active' : ''}" data-col="${col.id}" title="Сортировка и фильтр">
+                                            <i class="ph ph-funnel"></i>
+                                        </button>
+                                    ` : '';
+                                    return `
+                                        <th>
+                                            <div class="th-filter-wrapper">
+                                                <span>${col.label} ${sortIcon}</span>
+                                                ${filterBtn}
+                                            </div>
+                                        </th>
+                                    `;
+                                }).join('')}
+                                <th style="text-align: right; width: 100px;">Действия</th>
                             </tr>
-                        ` : ''}
-                        ${pageRecords.map(record => `
-                            <tr class="clickable-row" data-id="${record.id}" style="cursor: pointer;">
-                                ${visibleCols.map(col => `
-                                    <td>${this.getColumnValue(record, col.id)}</td>
-                                `).join('')}
-                                <td style="text-align: right;" class="actions-cell">
-                                    <div class="row-actions" style="display: flex; justify-content: flex-end; gap: 4px;">
-                                        <button class="btn btn-secondary btn-icon-only edit-row-btn" data-id="${record.id}" title="Редактировать"><i class="ph ph-pencil-simple"></i></button>
-                                        <button class="btn btn-danger btn-icon-only delete-row-btn" data-id="${record.id}" title="Удалить"><i class="ph ph-trash"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            ${pageRecords.length === 0 ? `
+                                <tr>
+                                    <td colspan="${visibleCols.length + 1}" class="text-secondary" style="text-align: center; padding: 30px;">
+                                        Записи не найдены
+                                    </td>
+                                </tr>
+                            ` : ''}
+                            ${pageRecords.map(record => `
+                                <tr class="clickable-row" data-id="${record.id}" style="cursor: pointer;">
+                                    ${visibleCols.map(col => `
+                                        <td>${this.getColumnValue(record, col.id)}</td>
+                                    `).join('')}
+                                    <td style="text-align: right;" class="actions-cell">
+                                        <div class="row-actions" style="display: flex; justify-content: flex-end; gap: 4px;">
+                                            <button class="btn btn-secondary btn-icon-only edit-row-btn" data-id="${record.id}" title="Редактировать"><i class="ph ph-pencil-simple"></i></button>
+                                            <button class="btn btn-danger btn-icon-only delete-row-btn" data-id="${record.id}" title="Удалить"><i class="ph ph-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `}
 
             <!-- Pagination Toolbar -->
             <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 12px; gap: 15px; flex-wrap: wrap;">
@@ -502,6 +547,14 @@ class BaseEntityComponent {
         const btnCreate = document.getElementById(`btn-create-${this.type}`);
         if (btnCreate) {
             btnCreate.addEventListener('click', () => {
+                this.openEditModal(null);
+            });
+        }
+
+        // Mobile FAB Create button
+        const fabCreate = document.getElementById(`fab-create-${this.type}`);
+        if (fabCreate) {
+            fabCreate.addEventListener('click', () => {
                 this.openEditModal(null);
             });
         }

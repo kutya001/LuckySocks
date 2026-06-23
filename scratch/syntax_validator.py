@@ -5,7 +5,8 @@ files = [
     'js/store.js',
     'js/main.js',
     'js/modules/documents.js',
-    'js/modules/about.js'
+    'js/modules/about.js',
+    'js/core/BaseEntityComponent.js'
 ]
 
 for filepath in files:
