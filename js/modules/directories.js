@@ -319,7 +319,7 @@ class EmployeeDirectory extends BaseEntityComponent {
                     <label class="form-label">Роль / Специализация</label>
                     <select class="form-control" name="role" required>
                         <option value="Оператор" ${item.role === 'Оператор' ? 'selected' : ''}>Оператор вязального оборудования</option>
-                        <option value="Швея" ${item.role === 'Швея' ? 'selected' : ''}>Швея (прошив мыска)</option>
+                        <option value="Швея" ${item.role === 'Швея' ? 'selected' : ''}>Швея (прошив)</option>
                         <option value="Бригадир" ${item.role === 'Бригадир' ? 'selected' : ''}>Бригадир производственной линии</option>
                         <option value="Конструктор" ${item.role === 'Конструктор' ? 'selected' : ''}>Конструктор-технолог карточек</option>
                         <option value="Механик" ${item.role === 'Механик' ? 'selected' : ''}>Механик / Наладчик оборудования</option>

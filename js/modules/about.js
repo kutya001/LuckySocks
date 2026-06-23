@@ -42,12 +42,12 @@ window.renderAboutApp = function(container) {
                         </div>
                         <div class="flow-step-card" data-step="3" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
                             <i class="ph ph-needle" style="font-size: 24px; color: var(--info); display: block; margin: 0 auto 6px;"></i>
-                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">3. Вязальный - выпуск</strong>
+                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">3. Вязальный</strong>
                             <span style="font-size: 10px; color: var(--text-secondary);">Станки & Операторы</span>
                         </div>
                         <div class="flow-step-card" data-step="4" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
                             <i class="ph ph-scissors" style="font-size: 24px; color: var(--primary-hover); display: block; margin: 0 auto 6px;"></i>
-                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">4. Прошив мыска</strong>
+                            <strong style="font-size: 12px; display: block; color: var(--text-primary);">4. Прошив</strong>
                             <span style="font-size: 10px; color: var(--text-secondary);">Выработка швей</span>
                         </div>
                         <div class="flow-step-card" data-step="5" style="cursor: pointer; padding: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); border-radius: var(--radius-md); text-align: center; transition: all var(--transition-fast);">
@@ -188,21 +188,21 @@ window.renderAboutApp = function(container) {
             roi: "Мгновенный контроль запланированного объема прямо во время заполнения плана."
         },
         3: {
-            title: "Вязальный - выпуск (Вязальный цех - ПФ)",
+            title: "Вязальный (Вязальный цех - ПФ)",
             icon: "ph-needle",
             color: "var(--info)",
             desc: "Операторы регистрируют выпуск сырой чулочной заготовки (полуфабриката) по станкам. В спецификации выводится живой контроль остатка: сколько запланировано, сколько уже связано и остаток к выпуску. Система блокирует перепроизводство заготовок.",
             roi: "Предотвращает бесконтрольное перепроизводство заготовок на 100%, экономя сырье."
         },
         4: {
-            title: "Прошив мыска (Швейный цех - ГП)",
+            title: "Прошив (Швейный цех - ГП)",
             icon: "ph-scissors",
             color: "var(--primary-hover)",
             desc: "Швеи проводят финишную сборку изделий (мысок). Система выводит в спецификации сравнение с вязанием (вязано в парах, уже прошито, остаток) и строго блокирует превышение прошитых пар над фактически связанным объемом.",
             roi: "Мгновенное выявление скрытых потерь полуфабрикатов на межоперационном переходе."
         },
         5: {
-            title: "Упаковка и сортировка (Сложное пакетирование)",
+            title: "Упаковка (Сложное пакетирование)",
             icon: "ph-package",
             color: "var(--success)",
             desc: "Приемка готовой продукции на склад с разделением по сортам (1-й сорт, 2-й сорт, 3-й сорт) на уровне линий. В спецификации выводится живой контроль: прошито пар по плану, уже упаковано, остаток. Блокирует превышение упаковки сверх прошива.",

@@ -903,7 +903,7 @@ class PlanningDocument extends BaseDocument {
 
 class ReleaseDocument extends BaseDocument {
     constructor() {
-        super('releases', 'Вязальный - выпуск');
+        super('releases', 'Вязальный');
     }
 
     getColumns() {
@@ -1173,7 +1173,7 @@ class ReleaseDocument extends BaseDocument {
 
 class SewingDocument extends BaseDocument {
     constructor() {
-        super('sewings', 'Прошив мыска');
+        super('sewings', 'Прошив');
     }
 
     getColumns() {
@@ -2144,7 +2144,7 @@ class RealizationDocument extends BaseDocument {
 
 class PmpDocument extends BaseDocument {
     constructor() {
-        super('pmp', 'Производственно-мощностные планы (ПМП)');
+        super('pmp', 'Производственно мощностной план');
     }
 
     getColumns() {
@@ -2328,7 +2328,7 @@ class PmpDocument extends BaseDocument {
                         </thead>
                         <tbody>
                             <tr>
-                                <td><strong>Вязальный - выпуск</strong></td>
+                                <td><strong>Вязальный</strong></td>
                                 <td style="text-align: right;">${formatQty(planKn)} шт.</td>
                                 <td style="text-align: right;">${formatQty(act.knittedQty)} шт.</td>
                                 <td style="text-align: center; font-weight: bold; color: ${pctKn >= 100 ? 'var(--success)' : (pctKn >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctKn}%</td>
@@ -2338,7 +2338,7 @@ class PmpDocument extends BaseDocument {
                                 <td style="text-align: right;" rowspan="3">${act.workingDays} дней</td>
                             </tr>
                             <tr>
-                                <td><strong>Прошив мыска</strong></td>
+                                <td><strong>Прошив</strong></td>
                                 <td style="text-align: right;">${formatQty(planSw)} пар</td>
                                 <td style="text-align: right;">${formatQty(act.sewnQty)} пар</td>
                                 <td style="text-align: center; font-weight: bold; color: ${pctSw >= 100 ? 'var(--success)' : (pctSw >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctSw}%</td>
@@ -2346,7 +2346,7 @@ class PmpDocument extends BaseDocument {
                                 <td style="text-align: right;">${act.sewingMachines} швей</td>
                             </tr>
                             <tr>
-                                <td><strong>Упаковка готовой продукции</strong></td>
+                                <td><strong>Упаковка</strong></td>
                                 <td style="text-align: right;">${formatQty(planPk)} пар</td>
                                 <td style="text-align: right;">${formatQty(act.packagedQty)} пар</td>
                                 <td style="text-align: center; font-weight: bold; color: ${pctPk >= 100 ? 'var(--success)' : (pctPk >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctPk}%</td>

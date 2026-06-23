@@ -86,17 +86,17 @@ function renderCurrentTab(subTab = null) {
             docMap.planning.renderTable(viewport);
             break;
         case 'pmp':
-            pageTitle.textContent = 'Мощностной план (ПМП)';
+            pageTitle.textContent = 'Производственно мощностной план';
             pageSubtitle.textContent = 'Производственно-мощностное планирование';
             docMap.pmp.renderTable(viewport);
             break;
         case 'releases':
-            pageTitle.textContent = 'Вязальный - выпуск';
+            pageTitle.textContent = 'Вязальный';
             pageSubtitle.textContent = 'Выработка вязального цеха (ПФ)';
             docMap.releases.renderTable(viewport);
             break;
         case 'sewings':
-            pageTitle.textContent = 'Прошив мыска';
+            pageTitle.textContent = 'Прошив';
             pageSubtitle.textContent = 'Выработка швейного цеха (ГП)';
             docMap.sewings.renderTable(viewport);
             break;
@@ -106,8 +106,8 @@ function renderCurrentTab(subTab = null) {
             docMap.packagings.renderTable(viewport);
             break;
         case 'reports':
-            pageTitle.textContent = 'Отчеты';
-            pageSubtitle.textContent = 'Анализ';
+            pageTitle.textContent = 'Мониторинг этапов';
+            pageSubtitle.textContent = 'Анализ выполнения заказов по этапам';
             renderReports(viewport);
             break;
         case 'settings':
