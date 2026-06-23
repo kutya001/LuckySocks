@@ -72,22 +72,24 @@ class OrderDocument extends BaseDocument {
                             <tr>
                                 <th>Номенклатура</th>
                                 <th>Характеристика</th>
-                                <th style="text-align: right; width: 100px;">Кол-во</th>
-                                <th style="text-align: right; width: 120px;">Цена</th>
-                                <th style="text-align: right; width: 140px;">Сумма</th>
-                                <th style="text-align: right; width: 140px;">Сумма в уч. вал.</th>
+                                <th style="text-align: right; width: 120px;">Кол-во (пар / шт)</th>
+                                <th style="text-align: right; width: 140px;">Цена (пар / шт)</th>
+                                <th style="text-align: right; width: 120px;">Сумма</th>
+                                <th style="text-align: right; width: 120px;">Сумма в уч. вал.</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${item.items.map(it => {
                                 const prod = state.nomenclature.find(n => n.id === it.productId) || {};
                                 const sumAcc = window.convertToAccounting(it.sum, item.currency, item.date);
+                                const qtyPcs = it.qty * 2;
+                                const pricePc = it.price / 2;
                                 return `
                                     <tr>
                                         <td>${prod.name || '—'}</td>
                                         <td class="text-secondary">${it.char}</td>
-                                        <td style="text-align: right;">${formatQty(it.qty)} пар</td>
-                                        <td style="text-align: right;">${formatMoney(it.price)} ${item.currency}</td>
+                                        <td style="text-align: right;">${formatQty(it.qty)} пар<br><small class="text-muted">${formatQty(qtyPcs)} шт</small></td>
+                                        <td style="text-align: right;">${formatMoney(it.price)} ${item.currency}<br><small class="text-muted">${formatMoney(pricePc)} за шт</small></td>
                                         <td style="text-align: right;"><strong>${formatMoney(it.sum)} ${item.currency}</strong></td>
                                         <td style="text-align: right;"><strong>${formatMoney(sumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</strong></td>
                                     </tr>
@@ -188,6 +190,8 @@ class OrderDocument extends BaseDocument {
                     const priceInput = tr.querySelector('.row-item-price');
                     const sumInput = tr.querySelector('.row-item-sum');
                     const sumAccInput = tr.querySelector('.row-item-sum-acc');
+                    const qtyPcsHelper = tr.querySelector('.qty-pcs-helper');
+                    const pricePcHelper = tr.querySelector('.price-pc-helper');
                     if (qtyInput && priceInput && sumInput && sumAccInput) {
                         const qty = parseFormattedNumber(qtyInput.value);
                         const price = parseFormattedNumber(priceInput.value);
@@ -196,6 +200,9 @@ class OrderDocument extends BaseDocument {
                         
                         const sumAcc = window.convertToAccounting(sum, currency, date);
                         sumAccInput.value = formatMoney(sumAcc);
+
+                        if (qtyPcsHelper) qtyPcsHelper.textContent = `${formatQty(qty * 2)} шт`;
+                        if (pricePcHelper) pricePcHelper.textContent = `${formatMoney(price / 2)} за шт`;
                     }
                 });
             };
@@ -251,8 +258,14 @@ class OrderDocument extends BaseDocument {
                         </select>
                     </td>
                     <td><input type="text" class="form-control row-item-char" value="${rowVal ? rowVal.char : 'Размер 41-43'}" required></td>
-                    <td class="col-qty"><input type="text" class="form-control row-item-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '100'}" required></td>
-                    <td class="col-price"><input type="text" class="form-control row-item-price col-price" value="${rowVal ? formatMoney(rowVal.price) : '50'}" required></td>
+                    <td class="col-qty">
+                        <input type="text" class="form-control row-item-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '100'}" required>
+                        <div class="text-muted qty-pcs-helper" style="font-size: 10px; margin-top: 4px; font-weight: 500;"></div>
+                    </td>
+                    <td class="col-price">
+                        <input type="text" class="form-control row-item-price col-price" value="${rowVal ? formatMoney(rowVal.price) : '50'}" required>
+                        <div class="text-muted price-pc-helper" style="font-size: 10px; margin-top: 4px; font-weight: 500;"></div>
+                    </td>
                     <td class="col-sum"><input type="text" class="form-control row-item-sum col-sum" value="${formatMoney(initialSum)}" readonly style="background: transparent; border-color: transparent;"></td>
                     <td class="col-sum"><input type="text" class="form-control row-item-sum-acc col-sum" value="${formatMoney(initialSumAcc)}" readonly style="background: transparent; border-color: transparent;"></td>
                     <td class="col-btn"><button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button></td>
@@ -263,6 +276,8 @@ class OrderDocument extends BaseDocument {
                 const priceInput = tr.querySelector('.row-item-price');
                 const sumInput = tr.querySelector('.row-item-sum');
                 const sumAccInput = tr.querySelector('.row-item-sum-acc');
+                const qtyPcsHelper = tr.querySelector('.qty-pcs-helper');
+                const pricePcHelper = tr.querySelector('.price-pc-helper');
 
                 const updateRowSum = () => {
                     const qty = parseFormattedNumber(qtyInput.value);
@@ -274,6 +289,9 @@ class OrderDocument extends BaseDocument {
                     const currency = currencyInput.value || 'KGS';
                     const sumAcc = window.convertToAccounting(sum, currency, date);
                     sumAccInput.value = formatMoney(sumAcc);
+
+                    if (qtyPcsHelper) qtyPcsHelper.textContent = `${formatQty(qty * 2)} шт`;
+                    if (pricePcHelper) pricePcHelper.textContent = `${formatMoney(price / 2)} за шт`;
                 };
 
                 qtyInput.addEventListener('input', updateRowSum);
@@ -281,6 +299,8 @@ class OrderDocument extends BaseDocument {
                 
                 setupNumericFormatting(qtyInput, 'qty');
                 setupNumericFormatting(priceInput, 'price');
+
+                updateRowSum();
                 
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
             };
@@ -1038,6 +1058,25 @@ class ReleaseDocument extends BaseDocument {
             return;
         }
 
+        // --- VALIDATION CHECK FOR EACH PLANNUM ---
+        const docQuantities = {};
+        items.forEach(item => {
+            docQuantities[item.planNum] = (docQuantities[item.planNum] || 0) + item.qty;
+        });
+
+        for (const [planNum, docQty] of Object.entries(docQuantities)) {
+            const plannedQtyPairs = window.getPlannedQtyForPlan(planNum);
+            const maxKnittedQtyPcs = plannedQtyPairs * 2;
+            const alreadyKnittedQtyPcs = window.getKnittedQtyForPlan(planNum, id);
+            
+            if (alreadyKnittedQtyPcs + docQty > maxKnittedQtyPcs) {
+                const available = maxKnittedQtyPcs - alreadyKnittedQtyPcs;
+                alert(`Ошибка сохранения выпуска по плану ${planNum}:\nПревышен лимит запуска!\nЗапланировано: ${plannedQtyPairs} пар (${maxKnittedQtyPcs} шт)\nУже выпущено: ${alreadyKnittedQtyPcs} шт\nДоступный остаток для ввода: ${available >= 0 ? available : 0} шт.`);
+                return;
+            }
+        }
+        // ----------------------------------------
+
         const newDoc = {
             id: id || 'rel_' + Date.now(),
             date: fd.get('date'),
@@ -1262,6 +1301,25 @@ class SewingDocument extends BaseDocument {
             return;
         }
 
+        // --- VALIDATION CHECK FOR EACH PLANNUM ---
+        const docQuantities = {};
+        items.forEach(item => {
+            docQuantities[item.planNum] = (docQuantities[item.planNum] || 0) + item.qty;
+        });
+
+        for (const [planNum, docQty] of Object.entries(docQuantities)) {
+            const knittedPcs = window.getKnittedQtyForPlan(planNum);
+            const maxSewnPairs = Math.floor(knittedPcs / 2);
+            const alreadySewnPairs = window.getSewnQtyForPlan(planNum, id);
+            
+            if (alreadySewnPairs + docQty > maxSewnPairs) {
+                const available = maxSewnPairs - alreadySewnPairs;
+                alert(`Ошибка сохранения прошива по плану ${planNum}:\nПревышен лимит прошива!\nСвязано (ПФ): ${knittedPcs} шт (${maxSewnPairs} пар)\nУже прошито: ${alreadySewnPairs} пар\nДоступный остаток для ввода: ${available >= 0 ? available : 0} пар.`);
+                return;
+            }
+        }
+        // ----------------------------------------
+
         const newDoc = {
             id: id || 'sew_' + Date.now(),
             date: fd.get('date'),
@@ -1303,7 +1361,7 @@ class PackagingDocument extends BaseDocument {
             return record.items.map(pi => `
                 <div style="margin-bottom: 4px;">
                     План <span class="badge badge-success">${pi.planNum}</span> : 
-                    <strong>${formatQty(pi.qty)} пар ГП</strong> упаковано
+                    <strong>${formatQty(pi.qty)} пар ГП</strong> упаковано (${pi.grade || '1-й сорт'})
                 </div>
             `).join('');
         }
@@ -1330,6 +1388,7 @@ class PackagingDocument extends BaseDocument {
                         <thead>
                             <tr>
                                 <th>Плановый номер</th>
+                                <th>Сорт</th>
                                 <th style="text-align: right; width: 240px;">Упаковано (пар готовой продукции)</th>
                             </tr>
                         </thead>
@@ -1337,6 +1396,7 @@ class PackagingDocument extends BaseDocument {
                             ${item.items.map(it => `
                                 <tr>
                                     <td><span class="badge badge-success">${it.planNum}</span></td>
+                                    <td><span class="badge badge-info">${it.grade || '1-й сорт'}</span></td>
                                     <td style="text-align: right;"><strong>${formatQty(it.qty)} пар</strong></td>
                                 </tr>
                             `).join('')}
@@ -1367,6 +1427,7 @@ class PackagingDocument extends BaseDocument {
                         <thead>
                             <tr>
                                 <th>Плановый номер (готовая продукция)</th>
+                                <th style="width: 150px;">Сорт</th>
                                 <th class="col-price">Упаковано (пар)</th>
                                 <th class="col-btn"></th>
                             </tr>
@@ -1398,11 +1459,19 @@ class PackagingDocument extends BaseDocument {
                     });
                 });
 
+                const grades = ['1-й сорт', '2-й сорт', '3-й сорт'];
+                const selectedGrade = rowVal ? rowVal.grade : '1-й сорт';
+
                 tr.innerHTML = `
                     <td>
                         <select class="form-control row-plannum-select" required>
                             <option value="">-- Выберите плановый номер --</option>
                             ${activePlans.map(ap => `<option value="${ap.code}" ${rowVal && rowVal.planNum === ap.code ? 'selected' : ''}>${ap.desc}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-control row-grade-select" required>
+                            ${grades.map(g => `<option value="${g}" ${g === selectedGrade ? 'selected' : ''}>${g}</option>`).join('')}
                         </select>
                     </td>
                     <td class="col-price">
@@ -1440,6 +1509,7 @@ class PackagingDocument extends BaseDocument {
         trs.forEach(tr => {
             items.push({
                 planNum: tr.querySelector('.row-plannum-select').value,
+                grade: tr.querySelector('.row-grade-select').value,
                 qty: parseFormattedNumber(tr.querySelector('.row-qty').value)
             });
         });
@@ -1448,6 +1518,25 @@ class PackagingDocument extends BaseDocument {
             alert('Ошибка: Заполните хотя бы одну строчку упакованного товара.');
             return;
         }
+
+        // --- VALIDATION CHECK FOR EACH PLANNUM ---
+        const docQuantities = {};
+        items.forEach(item => {
+            docQuantities[item.planNum] = (docQuantities[item.planNum] || 0) + item.qty;
+        });
+
+        for (const [planNum, docQty] of Object.entries(docQuantities)) {
+            const sewnPairs = window.getSewnQtyForPlan(planNum);
+            const maxPackagedPairs = sewnPairs;
+            const alreadyPackagedPairs = window.getPackagedQtyForPlan(planNum, id);
+            
+            if (alreadyPackagedPairs + docQty > maxPackagedPairs) {
+                const available = maxPackagedPairs - alreadyPackagedPairs;
+                alert(`Ошибка сохранения упаковки по плану ${planNum}:\nПревышен лимит упаковки!\nПрошито (ГП): ${sewnPairs} пар\nУже упаковано: ${alreadyPackagedPairs} пар\nДоступный остаток для ввода: ${available >= 0 ? available : 0} пар.`);
+                return;
+            }
+        }
+        // ----------------------------------------
 
         const newDoc = {
             id: id || 'pack_' + Date.now(),

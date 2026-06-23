@@ -115,7 +115,8 @@ function getAggregateData() {
                     plannedPairs: 0,
                     knittedPairs: 0,
                     sewnPairs: 0,
-                    packagedPairs: 0
+                    packagedPairs: 0,
+                    gradeBreakdown: {}
                 };
             })
         };
@@ -197,6 +198,8 @@ function getAggregateData() {
             if (match) {
                 // Packaging is in pairs
                 match.item.packagedPairs += Number(pItem.qty);
+                const grade = pItem.grade || '1-й сорт';
+                match.item.gradeBreakdown[grade] = (match.item.gradeBreakdown[grade] || 0) + Number(pItem.qty);
             }
         });
     });
@@ -271,7 +274,7 @@ function renderDashboard(container) {
             <span>Мониторинг линий вязания</span>
         </h2>
         
-        <div class="lines-grid">
+        <div class="lines-grid" style="margin-bottom: 30px;">
             ${state.lines.map(line => {
                 const foreman = state.employees.find(e => e.id === line.foremanId) || {};
                 const ops = line.operatorIds.map(id => state.employees.find(e => e.id === id)).filter(Boolean);
@@ -329,7 +332,169 @@ function renderDashboard(container) {
                 `;
             }).join('')}
         </div>
+
+        <!-- Order Transaction Timeline -->
+        <h2 class="section-title">
+            <i class="ph ph-clock-counter-clockwise text-primary"></i>
+            <span>Отслеживание транзакций по заказам</span>
+        </h2>
+        
+        <div class="timeline-container">
+            ${state.orders.length === 0 ? '<div class="card" style="padding: 20px; text-align: center; color: var(--text-muted);">Заказы покупателей отсутствуют.</div>' : ''}
+            ${state.orders.map((order, idx) => {
+                const client = state.counterparties.find(c => c.id === order.counterpartyId) || {};
+                
+                return `
+                    <div class="card timeline-order-card" style="margin-bottom: 12px; overflow: hidden;">
+                        <div class="timeline-order-header" data-idx="${idx}" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 16px 20px; background: rgba(255, 255, 255, 0.015); transition: background var(--transition-fast);">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <strong style="font-size: 15px; color: var(--text-primary);">${order.num}</strong>
+                                <span style="font-size: 13px; color: var(--text-secondary);">${client.name || '—'}</span>
+                                <span class="badge badge-success" style="font-size: 11px;">${order.date}</span>
+                                <span class="badge badge-info" style="font-size: 11px;">${order.items.length} позиций</span>
+                            </div>
+                            <i class="ph-bold ph-caret-right timeline-caret-${idx}" style="font-size: 16px; color: var(--text-secondary); transition: transform var(--transition-fast);"></i>
+                        </div>
+                        <div class="timeline-order-body timeline-body-${idx}" style="display: none; padding: 20px; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
+                            ${order.items.map(item => {
+                                const prod = state.nomenclature.find(n => n.id === item.productId) || {};
+                                
+                                // Gather events
+                                const events = [];
+                                
+                                // 1. Order placement
+                                events.push({
+                                    date: order.date,
+                                    type: 'order',
+                                    description: `Размещен заказ покупателя № <strong>${order.num}</strong> на <strong>${formatQty(item.qty)} пар</strong>`,
+                                    color: 'var(--primary-hover)'
+                                });
+                                
+                                // Related plan numbers
+                                const relatedPlanNums = [];
+                                state.planning.forEach(pl => {
+                                    if (pl.orderId === order.id) {
+                                        pl.items.forEach(pi => {
+                                            if (pi.productId === item.productId) {
+                                                relatedPlanNums.push(pi.planNum);
+                                                
+                                                const lineObj = state.lines.find(l => l.id === pi.lineId) || {};
+                                                events.push({
+                                                    date: pl.date,
+                                                    type: 'planning',
+                                                    description: `Запланирован запуск в производство: <strong>${formatQty(pi.qty)} пар</strong> на линию <strong>${lineObj.name || '—'}</strong> (План № <span class="badge badge-info">${pi.planNum}</span>)`,
+                                                    color: 'var(--info)'
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                                
+                                // Releases (Knitting)
+                                state.releases.forEach(rel => {
+                                    const op = state.employees.find(e => e.id === rel.operatorId) || {};
+                                    rel.items.forEach(ri => {
+                                        if (relatedPlanNums.includes(ri.planNum)) {
+                                            events.push({
+                                                date: rel.date,
+                                                type: 'release',
+                                                description: `Связано заготовок ПФ: <strong>${formatQty(ri.qty)} шт</strong> (${formatQty(Math.round(ri.qty / 2))} пар) на станке <strong>${ri.machineNum}</strong> (Оператор: <strong>${op.name || '—'}</strong>, План: <span class="badge badge-info">${ri.planNum}</span>)`,
+                                                color: 'var(--info)'
+                                            });
+                                        }
+                                    });
+                                });
+                                
+                                // Sewing
+                                state.sewings.forEach(sew => {
+                                    const lineObj = state.lines.find(l => l.id === sew.lineId) || {};
+                                    sew.items.forEach(si => {
+                                        if (relatedPlanNums.includes(si.planNum)) {
+                                            const seam = state.employees.find(e => e.id === si.seamstressId) || {};
+                                            events.push({
+                                                date: sew.date,
+                                                type: 'sewing',
+                                                description: `Прошито мысков (ГП): <strong>${formatQty(si.qty)} пар</strong> на линии <strong>${lineObj.name || '—'}</strong> (Швея: <strong>${seam.name || '—'}</strong>, План: <span class="badge badge-info">${si.planNum}</span>)`,
+                                                color: 'var(--primary-hover)'
+                                            });
+                                        }
+                                    });
+                                });
+                                
+                                // Packaging
+                                state.packagings.forEach(pack => {
+                                    pack.items.forEach(pi => {
+                                        if (relatedPlanNums.includes(pi.planNum)) {
+                                            events.push({
+                                                date: pack.date,
+                                                type: 'packaging',
+                                                description: `Упаковано на склад: <strong>${formatQty(pi.qty)} пар</strong>, <strong>${pi.grade || '1-й сорт'}</strong> (Принял: <strong>${pack.operatorName}</strong>, План: <span class="badge badge-info">${pi.planNum}</span>)`,
+                                                color: 'var(--success)'
+                                            });
+                                        }
+                                    });
+                                });
+                                
+                                // Sort events
+                                const stageOrder = {
+                                    'order': 1,
+                                    'planning': 2,
+                                    'release': 3,
+                                    'sewing': 4,
+                                    'packaging': 5
+                                };
+                                events.sort((a, b) => {
+                                    const dateCompare = a.date.localeCompare(b.date);
+                                    if (dateCompare !== 0) return dateCompare;
+                                    return (stageOrder[a.type] || 0) - (stageOrder[b.type] || 0);
+                                });
+                                
+                                return `
+                                    <div class="timeline-product-section" style="margin-bottom: 24px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px;">
+                                        <h4 style="font-size: 14px; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            <i class="ph ph-tag" style="color: var(--primary-hover);"></i>
+                                            <span>${prod.name || '—'} (${item.char})</span>
+                                            <span class="badge badge-success" style="font-size: 11px; margin-left: auto;">Заказ: ${formatQty(item.qty)} пар</span>
+                                        </h4>
+                                        <div class="timeline-events" style="position: relative; padding-left: 24px; border-left: 2px solid var(--border-color); margin-left: 8px; margin-top: 12px;">
+                                            ${events.map(ev => `
+                                                <div class="timeline-event" style="position: relative; margin-bottom: 16px;">
+                                                    <div class="timeline-dot" style="position: absolute; left: -30px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: ${ev.color}; border: 3px solid var(--bg-card);"></div>
+                                                    <div style="font-size: 12px; line-height: 1.5;">
+                                                        <span style="font-weight: 600; color: var(--text-secondary); margin-right: 8px; font-family: monospace;">${ev.date}</span>
+                                                        <span style="color: var(--text-primary);">${ev.description}</span>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
     `;
+
+    // Bind toggle events for order timelines
+    container.querySelectorAll('.timeline-order-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const idx = header.getAttribute('data-idx');
+            const body = container.querySelector(`.timeline-body-${idx}`);
+            const caret = container.querySelector(`.timeline-caret-${idx}`);
+            
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                caret.style.transform = 'rotate(90deg)';
+                header.style.background = 'rgba(255, 255, 255, 0.04)';
+            } else {
+                body.style.display = 'none';
+                caret.style.transform = 'rotate(0deg)';
+                header.style.background = 'rgba(255, 255, 255, 0.015)';
+            }
+        });
+    });
 }
 
 function renderReports(container) {
@@ -424,7 +589,15 @@ function renderReports(container) {
                                                         </td>
                                                         <td style="padding: 12px 8px; text-align: right;">
                                                             <div style="font-weight: 600; color: var(--success);">${formatQty(item.packagedPairs)} пар</div>
-                                                            <span style="font-size:10px; color: var(--text-muted);">${packPercent}% от швейки</span>
+                                                            <span style="font-size:10px; color: var(--text-muted); display: block; margin-bottom: 4px;">${packPercent}% от швейки</span>
+                                                            ${Object.entries(item.gradeBreakdown || {})
+                                                                .filter(([grade, qty]) => qty > 0)
+                                                                .map(([grade, qty]) => {
+                                                                    let badgeClass = 'badge-success';
+                                                                    if (grade.includes('2-й')) badgeClass = 'badge-warning';
+                                                                    if (grade.includes('3-й')) badgeClass = 'badge-danger';
+                                                                    return `<div style="margin-top: 2px;"><span class="badge ${badgeClass}" style="font-size: 9px; padding: 2px 4px; display: inline-block;">${grade}: ${formatQty(qty)}</span></div>`;
+                                                                }).join('')}
                                                         </td>
                                                     </tr>
                                                     

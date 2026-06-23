@@ -587,6 +587,16 @@ class LineDirectory extends BaseEntityComponent {
         const selectEl = form.querySelector('select[name="operatorIds"]');
         const selectedOperators = Array.from(selectEl.selectedOptions).map(option => option.value);
         
+        // Validation: one operator can only work on one line
+        for (const opId of selectedOperators) {
+            const alreadyAssignedLine = state.lines.find(line => line.operatorIds.includes(opId) && line.id !== id);
+            if (alreadyAssignedLine) {
+                const opName = (state.employees.find(e => e.id === opId) || {}).name || opId;
+                alert(`Ошибка: Оператор "${opName}" уже закреплен за линией "${alreadyAssignedLine.name}"! Один оператор может работать только на одной линии.`);
+                return;
+            }
+        }
+        
         if (id) {
             const idx = state.lines.findIndex(x => x.id === id);
             state.lines[idx] = {
