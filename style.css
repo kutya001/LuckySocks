@@ -1158,3 +1158,85 @@ select.form-control {
     display: inline-block;
     animation: spin 1s linear infinite;
 }
+
+/* About App Presentation Page Styles */
+.about-container {
+    animation: fadeIn 0.4s ease-out;
+}
+
+.about-hero {
+    transition: transform var(--transition-normal);
+}
+.about-hero:hover {
+    transform: translateY(-2px);
+}
+
+.flow-step-card {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.flow-step-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-hover) !important;
+    background: rgba(79, 70, 229, 0.05) !important;
+}
+.flow-step-card.active {
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Custom Sleek Sliders styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    transition: background var(--transition-fast);
+}
+input[type="range"]:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-hover);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: var(--primary);
+}
+input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary-hover);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    background: var(--primary);
+}
+
+.about-container .card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+

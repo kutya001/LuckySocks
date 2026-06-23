@@ -4,6 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     loadState();
     updateBrandName();
 
+    // Check first visit
+    const firstVisit = localStorage.getItem('socks_app_first_visit');
+    if (!firstVisit) {
+        localStorage.setItem('socks_app_first_visit', 'true');
+        currentTab = 'about';
+    }
+
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
@@ -14,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCurrentTab();
         });
     });
+
+    // Highlight current active tab
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    const activeNavItem = document.querySelector(`.nav-item[data-tab="${currentTab}"]`);
+    if (activeNavItem) {
+        activeNavItem.classList.add('active');
+    }
 
     document.getElementById('btn-reset-data')?.addEventListener('click', () => {
         if (confirm('Сбросить все данные?')) {
@@ -90,6 +104,11 @@ function renderCurrentTab(subTab = null) {
             pageTitle.textContent = 'Учетная политика';
             pageSubtitle.textContent = 'Настройки системы';
             renderSettings(viewport);
+            break;
+        case 'about':
+            pageTitle.textContent = 'О системе SOCKS.PRO';
+            pageSubtitle.textContent = 'Презентация возможностей и расчет окупаемости';
+            renderAboutApp(viewport);
             break;
     }
 }
