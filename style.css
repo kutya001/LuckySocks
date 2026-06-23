@@ -528,7 +528,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .data-table th {
     background-color: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid var(--border-color);
+    border: 1px solid var(--border-color);
     padding: 16px 20px;
     font-weight: 600;
     color: var(--text-secondary);
@@ -537,12 +537,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .data-table td {
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
+    border: 1px solid var(--border-color);
     vertical-align: middle;
-}
-
-.data-table tbody tr:last-child td {
-    border-bottom: none;
 }
 
 .data-table tbody tr:hover td {
@@ -625,6 +621,7 @@ select.form-control {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     overflow: hidden;
+    border-collapse: collapse;
 }
 
 .table-form th {
@@ -633,11 +630,12 @@ select.form-control {
     font-size: 11px;
     color: var(--text-secondary);
     text-align: left;
+    border: 1px solid var(--border-color);
 }
 
 .table-form td {
     padding: 4px 6px;
-    border-top: 1px solid var(--border-color);
+    border: 1px solid var(--border-color);
     vertical-align: middle;
 }
 
@@ -956,4 +954,154 @@ select.form-control {
     background: var(--primary-glow);
     color: var(--primary-hover);
     border-color: rgba(64, 156, 255, 0.3);
+}
+
+/* Excel Filter Popup styling */
+.excel-filter-popup {
+    position: absolute;
+    z-index: 1100;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-main);
+    width: 250px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    animation: modal-fade var(--transition-fast);
+}
+
+.excel-filter-popup .filter-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    transition: background var(--transition-fast);
+}
+
+.excel-filter-popup .filter-option:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.excel-filter-popup .filter-option i {
+    font-size: 16px;
+    color: var(--primary-hover);
+}
+
+.excel-filter-popup .filter-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 4px 0;
+}
+
+.excel-filter-popup .filter-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.excel-filter-popup .filter-search-wrapper i {
+    position: absolute;
+    left: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.excel-filter-popup .filter-search-input {
+    width: 100%;
+    padding: 6px 8px 6px 28px;
+    font-size: 12.5px;
+    height: 30px;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.excel-filter-popup .filter-search-input:focus {
+    border-color: var(--primary);
+}
+
+.excel-filter-popup .checkbox-list {
+    max-height: 150px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-main);
+}
+
+.excel-filter-popup .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    user-select: none;
+}
+
+.excel-filter-popup .checkbox-item input {
+    cursor: pointer;
+}
+
+.excel-filter-popup .filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.excel-filter-popup .filter-actions .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+}
+
+/* Th elements excel filter icons */
+.th-filter-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    position: relative;
+    user-select: none;
+}
+
+.btn-excel-filter {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-excel-filter:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+}
+
+.btn-excel-filter.active {
+    color: var(--primary-hover);
+}
+
+.sort-indicator {
+    font-size: 12px;
+    margin-left: 2px;
+    color: var(--primary-hover);
 }

@@ -395,8 +395,8 @@ class SpecificationDocument extends BaseDocument {
                         <thead>
                             <tr>
                                 <th>Сырьё (Вид: С)</th>
-                                <th style="width: 200px;">Норма расхода (кг или шт)</th>
-                                <th style="width: 50px;"></th>
+                                <th class="col-price">Расход (кг/шт)</th>
+                                <th class="col-btn"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -426,10 +426,10 @@ class SpecificationDocument extends BaseDocument {
                             ${rawMaterials.map(rm => `<option value="${rm.id}" ${rowVal && rowVal.id === rm.id ? 'selected' : ''}>${rm.name}</option>`).join('')}
                         </select>
                     </td>
-                    <td>
-                        <input type="number" class="form-control row-qty" value="${rowVal ? rowVal.qty : 0.01}" step="0.001" min="0.0001" required style="text-align: right;">
+                    <td class="col-price">
+                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 0.01}" step="0.001" min="0.0001" required>
                     </td>
-                    <td>
+                    <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
@@ -586,9 +586,9 @@ class PlanningDocument extends BaseDocument {
                             <tr>
                                 <th>Готовая продукция (из Заказа)</th>
                                 <th>Производственная Линия</th>
-                                <th style="width: 140px;">Объем запуска (пар)</th>
-                                <th style="width: 160px;">Плановый номер</th>
-                                <th style="width: 50px;"></th>
+                                <th class="col-qty">Кол-во (пар)</th>
+                                <th style="width: 130px;">Плановый номер</th>
+                                <th class="col-btn"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -635,13 +635,13 @@ class PlanningDocument extends BaseDocument {
                             ${state.lines.map(l => `<option value="${l.id}" ${rowVal && rowVal.lineId === l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
                         </select>
                     </td>
-                    <td>
-                        <input type="number" class="form-control row-qty" value="${rowVal ? rowVal.qty : 1000}" min="1" required style="text-align: right;">
+                    <td class="col-qty">
+                        <input type="number" class="form-control row-qty col-qty" value="${rowVal ? rowVal.qty : 1000}" min="1" required>
                     </td>
                     <td>
                         <input type="text" class="form-control row-plannum" value="${rowVal ? rowVal.planNum : ''}" required readonly style="text-align: center; background: rgba(255,255,255,0.03);">
                     </td>
-                    <td>
+                    <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
@@ -814,8 +814,8 @@ class ReleaseDocument extends BaseDocument {
                             <tr>
                                 <th>Станок оператора</th>
                                 <th>Плановый номер</th>
-                                <th style="width: 200px;">Выпуск заготовки (шт)</th>
-                                <th style="width: 50px;"></th>
+                                <th class="col-price">Выпуск (шт)</th>
+                                <th class="col-btn"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -864,10 +864,10 @@ class ReleaseDocument extends BaseDocument {
                             ${activePlans.map(ap => `<option value="${ap.code}" ${rowVal && rowVal.planNum === ap.code ? 'selected' : ''}>${ap.desc}</option>`).join('')}
                         </select>
                     </td>
-                    <td>
-                        <input type="number" class="form-control row-qty" value="${rowVal ? rowVal.qty : 1000}" min="1" required style="text-align: right;">
+                    <td class="col-price">
+                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 1000}" min="1" required>
                     </td>
-                    <td>
+                    <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
@@ -1026,8 +1026,8 @@ class SewingDocument extends BaseDocument {
                             <tr>
                                 <th>Швея</th>
                                 <th>Плановый номер (заготовка ПФ)</th>
-                                <th style="width: 200px;">Прошито (пар готовой продукции)</th>
-                                <th style="width: 50px;"></th>
+                                <th class="col-price">Прошито (пар)</th>
+                                <th class="col-btn"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1078,10 +1078,10 @@ class SewingDocument extends BaseDocument {
                             ${activePlans.length === 0 ? '<option value="" disabled>На этой линии нет запущенных планов!</option>' : ''}
                         </select>
                     </td>
-                    <td>
-                        <input type="number" class="form-control row-qty" value="${rowVal ? rowVal.qty : 500}" min="1" required style="text-align: right;">
+                    <td class="col-price">
+                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 500}" min="1" required>
                     </td>
-                    <td>
+                    <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
@@ -1223,8 +1223,8 @@ class PackagingDocument extends BaseDocument {
                         <thead>
                             <tr>
                                 <th>Плановый номер (готовая продукция)</th>
-                                <th style="width: 240px;">Упаковано готовых носков (пар)</th>
-                                <th style="width: 50px;"></th>
+                                <th class="col-price">Упаковано (пар)</th>
+                                <th class="col-btn"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1261,10 +1261,10 @@ class PackagingDocument extends BaseDocument {
                             ${activePlans.map(ap => `<option value="${ap.code}" ${rowVal && rowVal.planNum === ap.code ? 'selected' : ''}>${ap.desc}</option>`).join('')}
                         </select>
                     </td>
-                    <td>
-                        <input type="number" class="form-control row-qty" value="${rowVal ? rowVal.qty : 500}" min="1" required style="text-align: right;">
+                    <td class="col-price">
+                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 500}" min="1" required>
                     </td>
-                    <td>
+                    <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;

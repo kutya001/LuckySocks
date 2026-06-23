@@ -6,6 +6,8 @@ class BaseEntityComponent {
         this.columns = this.getColumns(); // [{ id: '...', label: '...', filterable: true }]
         this.activeFilters = {};
         this.visibleColumns = this.loadColumnPreferences();
+        this.sortColumn = null;
+        this.sortDirection = null;
     }
 
     loadColumnPreferences() {
@@ -89,23 +91,25 @@ class BaseEntityComponent {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            ${visibleCols.map(col => `
-                                <th>${col.label}</th>
-                            `).join('')}
-                            <th style="text-align: right; width: 100px;">Действия</th>
-                        </tr>
-                        <!-- Filter Row -->
-                        <tr class="filter-row" style="background: rgba(0,0,0,0.2);">
-                            ${visibleCols.map(col => `
-                                <td style="padding: 6px;">
-                                    ${col.filterable !== false ? `
-                                        <div style="position: relative; display: flex; align-items: center;">
-                                            <input type="text" class="form-control col-filter-input" data-col="${col.id}" value="${this.activeFilters[col.id] || ''}" placeholder="Фильтр..." style="padding: 4px 8px; font-size: 11px; height: auto; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-primary);">
+                            ${visibleCols.map(col => {
+                                const isFiltered = this.activeFilters[col.id] !== undefined;
+                                const isSorted = this.sortColumn === col.id;
+                                const sortIcon = isSorted ? (this.sortDirection === 'asc' ? '<i class="ph ph-caret-up sort-indicator"></i>' : '<i class="ph ph-caret-down sort-indicator"></i>') : '';
+                                const filterBtn = col.filterable !== false ? `
+                                    <button class="btn-excel-filter ${isFiltered ? 'active' : ''}" data-col="${col.id}" title="Сортировка и фильтр">
+                                        <i class="ph ph-funnel"></i>
+                                    </button>
+                                ` : '';
+                                return `
+                                    <th>
+                                        <div class="th-filter-wrapper">
+                                            <span>${col.label} ${sortIcon}</span>
+                                            ${filterBtn}
                                         </div>
-                                    ` : ''}
-                                </td>
-                            `).join('')}
-                            <td style="padding: 6px;"></td>
+                                    </th>
+                                `;
+                            }).join('')}
+                            <th style="text-align: right; width: 100px;">Действия</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,15 +143,245 @@ class BaseEntityComponent {
     }
 
     getFilteredRecords() {
-        const list = this.getRecords();
-        return list.filter(record => {
+        let list = [...this.getRecords()];
+        
+        // Apply Excel filters
+        list = list.filter(record => {
             return Object.keys(this.activeFilters).every(colId => {
-                const filterVal = this.activeFilters[colId].toLowerCase().trim();
-                if (!filterVal) return true;
-                const recordVal = this.getColumnValueForFilter(record, colId).toLowerCase();
-                return recordVal.includes(filterVal);
+                const allowedValues = this.activeFilters[colId];
+                if (!allowedValues || !Array.isArray(allowedValues)) return true;
+                const recordVal = this.getColumnValueForFilter(record, colId);
+                return allowedValues.includes(recordVal);
             });
         });
+        
+        // Apply Sorting
+        if (this.sortColumn) {
+            const colId = this.sortColumn;
+            const dir = this.sortDirection === 'desc' ? -1 : 1;
+            
+            list.sort((a, b) => {
+                const valA = this.getColumnValueForFilter(a, colId);
+                const valB = this.getColumnValueForFilter(b, colId);
+                
+                // Try sorting as numbers: strip spaces and replace commas with dots
+                const numA = parseFloat(valA.replace(/\s/g, '').replace(',', '.'));
+                const numB = parseFloat(valB.replace(/\s/g, '').replace(',', '.'));
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return (numA - numB) * dir;
+                }
+                
+                // Try sorting as dates: YYYY-MM-DD or DD.MM.YYYY
+                const datePattern1 = /^(\d{4})-(\d{2})-(\d{2})$/;
+                const datePattern2 = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+                
+                const matchA1 = valA.match(datePattern1);
+                const matchB1 = valB.match(datePattern1);
+                if (matchA1 && matchB1) {
+                    const dateA = new Date(matchA1[1], matchA1[2] - 1, matchA1[3]);
+                    const dateB = new Date(matchB1[1], matchB1[2] - 1, matchB1[3]);
+                    return (dateA - dateB) * dir;
+                }
+                
+                const matchA2 = valA.match(datePattern2);
+                const matchB2 = valB.match(datePattern2);
+                if (matchA2 && matchB2) {
+                    const dateA = new Date(matchA2[3], matchA2[2] - 1, matchA2[1]);
+                    const dateB = new Date(matchB2[3], matchB2[2] - 1, matchB2[1]);
+                    return (dateA - dateB) * dir;
+                }
+                
+                // Fallback to localeCompare
+                return valA.localeCompare(valB, 'ru', { numeric: true }) * dir;
+            });
+        }
+        
+        return list;
+    }
+
+    openExcelFilterPopup(btn, colId) {
+        let popup = document.getElementById('excel-filter-popup');
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.id = 'excel-filter-popup';
+            popup.className = 'excel-filter-popup';
+            document.body.appendChild(popup);
+        }
+
+        const escapeHtml = (str) => {
+            if (typeof str !== 'string') return str;
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        };
+
+        // Gather unique values
+        const records = this.getRecords();
+        const uniqueValues = Array.from(new Set(records.map(r => this.getColumnValueForFilter(r, colId)))).filter(v => v !== undefined && v !== null);
+        
+        // Sort unique values logically
+        uniqueValues.sort((a, b) => {
+            const numA = parseFloat(a.replace(/\s/g, '').replace(',', '.'));
+            const numB = parseFloat(b.replace(/\s/g, '').replace(',', '.'));
+            if (!isNaN(numA) && !isNaN(numB)) {
+                return numA - numB;
+            }
+            return String(a).localeCompare(String(b), 'ru', { numeric: true });
+        });
+
+        const activeSel = this.activeFilters[colId] || null;
+
+        popup.innerHTML = `
+            <div class="filter-option" id="excel-sort-asc" style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph ph-sort-ascending"></i>
+                <span>Сортировка по возрастанию</span>
+            </div>
+            <div class="filter-option" id="excel-sort-desc" style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph ph-sort-descending"></i>
+                <span>Сортировка по убыванию</span>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="filter-search-wrapper">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" class="filter-search-input" placeholder="Поиск..." id="excel-search-input">
+            </div>
+            <div class="checkbox-list" id="excel-checkbox-list">
+                <label class="checkbox-item">
+                    <input type="checkbox" id="excel-select-all" checked>
+                    <span>(Выделить все)</span>
+                </label>
+                ${uniqueValues.map(val => {
+                    const isChecked = !activeSel || activeSel.includes(val);
+                    return `
+                        <label class="checkbox-item unique-val-item" data-val="${escapeHtml(val)}">
+                            <input type="checkbox" class="excel-val-chk" data-val="${escapeHtml(val)}" ${isChecked ? 'checked' : ''}>
+                            <span>${val === '' ? '(Пустые)' : escapeHtml(val)}</span>
+                        </label>
+                    `;
+                }).join('')}
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-secondary" id="excel-filter-cancel">Отмена</button>
+                <button class="btn btn-secondary" id="excel-filter-clear">Сбросить</button>
+                <button class="btn btn-primary" id="excel-filter-ok">ОК</button>
+            </div>
+        `;
+
+        // Search input logic
+        const searchInput = popup.querySelector('#excel-search-input');
+        const chkItems = popup.querySelectorAll('.unique-val-item');
+        const selectAllChk = popup.querySelector('#excel-select-all');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            chkItems.forEach(item => {
+                const val = item.getAttribute('data-val').toLowerCase();
+                if (val.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            updateSelectAllState();
+        });
+
+        // Checkboxes change event
+        const valChks = popup.querySelectorAll('.excel-val-chk');
+        valChks.forEach(chk => {
+            chk.addEventListener('change', () => {
+                updateSelectAllState();
+            });
+        });
+
+        const updateSelectAllState = () => {
+            const visibleChks = popup.querySelectorAll('.unique-val-item:not([style*="display: none"]) .excel-val-chk');
+            if (visibleChks.length === 0) {
+                selectAllChk.checked = false;
+                selectAllChk.indeterminate = false;
+            } else {
+                const allChecked = Array.from(visibleChks).every(c => c.checked);
+                const someChecked = Array.from(visibleChks).some(c => c.checked);
+                selectAllChk.checked = allChecked;
+                selectAllChk.indeterminate = !allChecked && someChecked;
+            }
+        };
+
+        updateSelectAllState();
+
+        selectAllChk.addEventListener('change', (e) => {
+            const visibleChks = popup.querySelectorAll('.unique-val-item:not([style*="display: none"]) .excel-val-chk');
+            visibleChks.forEach(chk => {
+                chk.checked = e.target.checked;
+            });
+        });
+
+        // Click handlers
+        popup.querySelector('#excel-sort-asc').addEventListener('click', () => {
+            this.sortColumn = colId;
+            this.sortDirection = 'asc';
+            popup.style.display = 'none';
+            this.renderTable(this.currentViewport);
+        });
+
+        popup.querySelector('#excel-sort-desc').addEventListener('click', () => {
+            this.sortColumn = colId;
+            this.sortDirection = 'desc';
+            popup.style.display = 'none';
+            this.renderTable(this.currentViewport);
+        });
+
+        popup.querySelector('#excel-filter-clear').addEventListener('click', () => {
+            delete this.activeFilters[colId];
+            if (this.sortColumn === colId) {
+                this.sortColumn = null;
+                this.sortDirection = null;
+            }
+            popup.style.display = 'none';
+            this.renderTable(this.currentViewport);
+        });
+
+        popup.querySelector('#excel-filter-cancel').addEventListener('click', () => {
+            popup.style.display = 'none';
+        });
+
+        popup.querySelector('#excel-filter-ok').addEventListener('click', () => {
+            const checkedVals = Array.from(popup.querySelectorAll('.excel-val-chk:checked')).map(chk => chk.getAttribute('data-val'));
+            if (checkedVals.length === valChks.length) {
+                delete this.activeFilters[colId];
+            } else {
+                this.activeFilters[colId] = checkedVals;
+            }
+            popup.style.display = 'none';
+            this.renderTable(this.currentViewport);
+        });
+
+        // Position and show popover
+        popup.style.display = 'flex';
+        const rect = btn.getBoundingClientRect();
+        let top = rect.bottom + window.scrollY + 5;
+        let left = rect.left + window.scrollX - 220;
+        
+        if (left < 10) left = 10;
+        const screenWidth = window.innerWidth;
+        if (left + 250 > screenWidth - 10) {
+            left = screenWidth - 260;
+        }
+        
+        popup.style.top = `${top}px`;
+        popup.style.left = `${left}px`;
+
+        const outsideClickListener = (e) => {
+            if (!popup.contains(e.target) && !e.target.closest('.btn-excel-filter')) {
+                popup.style.display = 'none';
+                document.removeEventListener('click', outsideClickListener);
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener('click', outsideClickListener);
+        }, 10);
     }
 
     bindEvents(viewport) {
@@ -178,18 +412,12 @@ class BaseEntityComponent {
             });
         });
 
-        // Column filter inputs
-        viewport.querySelectorAll('.col-filter-input').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const colId = input.getAttribute('data-col');
-                this.activeFilters[colId] = e.target.value;
-                this.renderTable(viewport);
-                // Keep focus on the active input
-                const newInput = viewport.querySelector(`.col-filter-input[data-col="${colId}"]`);
-                if (newInput) {
-                    newInput.focus();
-                    newInput.setSelectionRange(newInput.value.length, newInput.value.length);
-                }
+        // Excel filter buttons
+        viewport.querySelectorAll('.btn-excel-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const colId = btn.getAttribute('data-col');
+                this.openExcelFilterPopup(btn, colId);
             });
         });
 
