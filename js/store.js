@@ -145,10 +145,10 @@ const DEFAULT_STATE = {
         }
     ],
     settings: {
-        companyName: 'Socks.Pro Производство',
+        companyName: 'LuckySocks',
         accountingCurrency: 'KGS',
         phoneFormat: '+996 (XXX) XX-XX-XX',
-        useDecimals: true,
+        useDecimals: false,
         decimalPlaces: 2
     }
 };
