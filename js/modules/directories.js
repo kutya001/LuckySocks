@@ -24,10 +24,21 @@ class NomenclatureDirectory extends BaseEntityComponent {
         const item = this.getRecords().find(x => x.id === id);
         const typeObj = state.nomenclatureTypes.find(t => t.id === item.type) || {};
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Артикул / Код</span><strong>${item.code}</strong></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Наименование</span><span>${item.name}</span></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Вид номенклатуры</span><span class="badge badge-info">${typeObj.name || item.type}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Артикул / Код</span>
+                        <span class="view-field-value">${item.code}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Вид номенклатуры</span>
+                        <span class="view-field-value"><span class="badge badge-info">${typeObj.name || item.type}</span></span>
+                    </div>
+                </div>
+                <div class="view-field">
+                    <span class="view-field-label">Наименование</span>
+                    <span class="view-field-value">${item.name}</span>
+                </div>
             </div>
         `;
     }
@@ -102,14 +113,35 @@ class CounterpartyDirectory extends BaseEntityComponent {
         const item = this.getRecords().find(x => x.id === id);
         const contracts = state.contracts.filter(con => con.counterpartyId === id);
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Название контрагента</span><strong>${item.name}</strong></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Телефон</span><span>${item.phone || '—'}</span></div>
-                <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Договоры контрагента</span>
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
-                        ${contracts.map(con => `<div style="display: flex; align-items: center; gap: 8px;"><i class="ph ph-file-text text-success"></i><span>${con.num} (${con.currency})</span></div>`).join('') || '<span class="text-muted">Договоры отсутствуют</span>'}
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Название контрагента</span>
+                        <span class="view-field-value">${item.name}</span>
                     </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Телефон</span>
+                        <span class="view-field-value">${item.phone || '—'}</span>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Договоры контрагента</span>
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Номер договора</th>
+                                <th>Валюта расчетов</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${contracts.map(con => `
+                                <tr>
+                                    <td><i class="ph ph-file-text text-success" style="margin-right: 6px;"></i><strong>${con.num}</strong></td>
+                                    <td>${con.currency}</td>
+                                </tr>
+                            `).join('') || `<tr><td colspan="2" class="text-secondary" style="text-align: center;">Договоры отсутствуют</td></tr>`}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
@@ -260,9 +292,17 @@ class EmployeeDirectory extends BaseEntityComponent {
     getModalViewBody(id) {
         const item = this.getRecords().find(x => x.id === id);
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">ФИО сотрудника</span><strong>${item.name}</strong></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Должность / Специализация</span><span class="badge badge-info">${item.role}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">ФИО сотрудника</span>
+                        <span class="view-field-value">${item.name}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Должность / Специализация</span>
+                        <span class="view-field-value"><span class="badge badge-info">${item.role}</span></span>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -344,10 +384,21 @@ class EquipmentDirectory extends BaseEntityComponent {
             workerName = (state.employees.find(e => e.id === item.seamstressId) || {}).name || '—';
         }
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Инвентарный / Персональный №</span><strong>${item.num}</strong></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Тип оборудования</span><span>${item.type}</span></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Закрепленный ответственный</span><span>${workerName}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid" style="grid-template-columns: 1fr 1.5fr;">
+                    <div class="view-field">
+                        <span class="view-field-label">Инвентарный / Персональный №</span>
+                        <span class="view-field-value">${item.num}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Тип оборудования</span>
+                        <span class="view-field-value">${item.type}</span>
+                    </div>
+                </div>
+                <div class="view-field">
+                    <span class="view-field-label">Закрепленный ответственный</span>
+                    <span class="view-field-value"><i class="ph ph-user" style="margin-right: 6px;"></i>${workerName}</span>
+                </div>
             </div>
         `;
     }
@@ -480,13 +531,21 @@ class LineDirectory extends BaseEntityComponent {
         const foreman = state.employees.find(e => e.id === item.foremanId) || {};
         const ops = item.operatorIds.map(oId => state.employees.find(e => e.id === oId)).filter(Boolean);
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Линия</span><strong>${item.name}</strong></div>
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Бригадир</span><span>${foreman.name || 'Не назначен'}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Линия</span>
+                        <span class="view-field-value">${item.name}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Бригадир</span>
+                        <span class="view-field-value"><i class="ph ph-user" style="margin-right: 6px;"></i>${foreman.name || 'Не назначен'}</span>
+                    </div>
+                </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Операторы на линии</span>
-                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                        ${ops.map(o => `<span class="badge badge-info">${o.name}</span>`).join('') || '<span class="text-muted">Операторы отсутствуют</span>'}
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Операторы на линии</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${ops.map(o => `<span class="badge badge-info" style="padding: 6px 12px; font-size: 12px;"><i class="ph ph-user" style="margin-right: 4px;"></i>${o.name}</span>`).join('') || '<span class="text-muted">Операторы отсутствуют</span>'}
                     </div>
                 </div>
             </div>

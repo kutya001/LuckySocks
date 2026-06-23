@@ -37,25 +37,37 @@ class OrderDocument extends BaseDocument {
         const contract = state.contracts.find(c => c.id === item.contractId) || {};
         const totalSum = item.items.reduce((s, i) => s + Number(i.sum), 0);
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Номер документа</span><strong>${item.num}</strong></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Дата документа</span><span>${item.date}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Номер документа</span>
+                        <span class="view-field-value">${item.num}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Дата документа</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Контрагент</span><span>${client.name || '—'}</span></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Договор</span><span class="badge badge-success">${contract.num || '—'} (${item.currency})</span></div>
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Контрагент</span>
+                        <span class="view-field-value">${client.name || '—'}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Договор</span>
+                        <span class="view-field-value"><span class="badge badge-success">${contract.num || '—'} (${item.currency})</span></span>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Товары заказа (Спецификация)</span>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Товары заказа (Спецификация)</span>
                     <table class="data-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
                                 <th>Номенклатура</th>
                                 <th>Характеристика</th>
-                                <th style="text-align: right;">Кол-во</th>
-                                <th style="text-align: right;">Цена</th>
-                                <th style="text-align: right;">Сумма</th>
+                                <th style="text-align: right; width: 100px;">Кол-во</th>
+                                <th style="text-align: right; width: 120px;">Цена</th>
+                                <th style="text-align: right; width: 140px;">Сумма</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -312,25 +324,56 @@ class SpecificationDocument extends BaseDocument {
         const prod = state.nomenclature.find(n => n.id === item.productId) || {};
         const semi = state.nomenclature.find(n => n.id === item.semiProductId) || {};
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Название Техкарты</span><strong>${item.name}</strong></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Готовый продукт (ГП)</span><span>${prod.name || '—'}</span></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Полуфабрикат (ПФ)</span><span>${semi.name || '—'}</span></div>
+            <div class="view-details">
+                <div class="view-field">
+                    <span class="view-field-label">Название Техкарты</span>
+                    <span class="view-field-value">${item.name}</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Станок по умолчанию</span><span class="badge badge-info">${item.machineNum}</span></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Цвет / Пол</span><span>${item.color} / ${item.gender}</span></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Время пошива 1 шт</span><strong>${formatQty(item.sewingTimeSec)} сек</strong></div>
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Готовый продукт (ГП)</span>
+                        <span class="view-field-value">${prod.name || '—'}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Полуфабрикат (ПФ)</span>
+                        <span class="view-field-value">${semi.name || '—'}</span>
+                    </div>
+                </div>
+                <div class="view-fields-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="view-field">
+                        <span class="view-field-label">Станок по умолчанию</span>
+                        <span class="view-field-value"><span class="badge badge-info">${item.machineNum}</span></span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Цвет / Пол</span>
+                        <span class="view-field-value">${item.color} / ${item.gender}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Время пошива 1 шт</span>
+                        <span class="view-field-value">${formatQty(item.sewingTimeSec)} сек</span>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Нормы расхода сырья на единицу</span>
-                    <ul>
-                        ${item.materials.map(m => {
-                            const mat = state.nomenclature.find(n => n.id === m.id) || {};
-                            return `<li>${mat.name}: <strong>${formatRate(m.qty)} кг/шт</strong></li>`;
-                        }).join('') || '<li>Нормы не заданы</li>'}
-                    </ul>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Нормы расхода сырья на единицу</span>
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Сырьё / Материал</th>
+                                <th style="text-align: right; width: 200px;">Расход (кг/шт)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${item.materials.map(m => {
+                                const mat = state.nomenclature.find(n => n.id === m.id) || {};
+                                return `
+                                    <tr>
+                                        <td>${mat.name || '—'}</td>
+                                        <td style="text-align: right;"><strong>${formatRate(m.qty)} кг/шт</strong></td>
+                                    </tr>
+                                `;
+                            }).join('') || `<tr><td colspan="2" class="text-secondary" style="text-align: center;">Нормы не заданы</td></tr>`}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
@@ -526,20 +569,26 @@ class PlanningDocument extends BaseDocument {
         const item = this.getRecords().find(x => x.id === id);
         const orderObj = state.orders.find(o => o.id === item.orderId) || { num: 'Неизвестно' };
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Дата планирования</span><strong>${item.date}</strong></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Заказ-основание</span><span>${orderObj.num}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Дата планирования</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Заказ-основание</span>
+                        <span class="view-field-value">${orderObj.num}</span>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Распределение партий по Линиям</span>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Распределение партий по Линиям</span>
                     <table class="data-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
                                 <th>Продукция ГП</th>
                                 <th>Линия вязания</th>
-                                <th style="text-align: right;">Плановый объем</th>
-                                <th style="text-align: center;">Плановый №</th>
+                                <th style="text-align: right; width: 140px;">Плановый объем</th>
+                                <th style="text-align: center; width: 140px;">Плановый №</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -757,20 +806,26 @@ class ReleaseDocument extends BaseDocument {
         const item = this.getRecords().find(x => x.id === id);
         const op = state.employees.find(e => e.id === item.operatorId) || {};
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Дата выпуска</span><strong>${item.date}</strong></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Оператор вязания</span><span>${op.name || '—'}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Дата выпуска</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Оператор вязания</span>
+                        <span class="view-field-value">${op.name || '—'}</span>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Выпущенная заготовка (ПФ)</span>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Выпущенная заготовка (ПФ)</span>
                     <table class="data-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
                                 <th>Вязальный станок</th>
                                 <th>Плановый номер</th>
-                                <th style="text-align: right;">Объем (штук)</th>
-                                <th style="text-align: right;">Объем (пар)</th>
+                                <th style="text-align: right; width: 140px;">Объем (штук)</th>
+                                <th style="text-align: right; width: 140px;">Объем (пар)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -969,19 +1024,25 @@ class SewingDocument extends BaseDocument {
         const item = this.getRecords().find(x => x.id === id);
         const line = state.lines.find(l => l.id === item.lineId) || {};
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Дата прошива</span><strong>${item.date}</strong></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Производственная Линия</span><span>${line.name || '—'}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Дата прошива</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Производственная Линия</span>
+                        <span class="view-field-value">${line.name || '—'}</span>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Выработка швей (ГП)</span>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Выработка швей (ГП)</span>
                     <table class="data-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
                                 <th>Швея</th>
                                 <th>Плановый номер</th>
-                                <th style="text-align: right;">Прошито (пар готовой продукции)</th>
+                                <th style="text-align: right; width: 200px;">Прошито (пар готовой продукции)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1175,18 +1236,24 @@ class PackagingDocument extends BaseDocument {
     getModalViewBody(id) {
         const item = this.getRecords().find(x => x.id === id);
         return `
-            <div class="view-details" style="display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Дата упаковки</span><strong>${item.date}</strong></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Оператор принятия упаковки</span><span>${item.operatorName}</span></div>
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Дата упаковки</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Оператор принятия упаковки</span>
+                        <span class="view-field-value">${item.operatorName}</span>
+                    </div>
                 </div>
                 <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Упакованная готовая продукция (ГП)</span>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Упакованная готовая продукция (ГП)</span>
                     <table class="data-table" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
                                 <th>Плановый номер</th>
-                                <th style="text-align: right;">Упаковано (пар готовой продукции)</th>
+                                <th style="text-align: right; width: 240px;">Упаковано (пар готовой продукции)</th>
                             </tr>
                         </thead>
                         <tbody>
