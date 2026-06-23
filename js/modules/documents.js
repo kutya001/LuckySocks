@@ -9,7 +9,8 @@ class OrderDocument extends BaseDocument {
             { id: 'num', label: 'Номер заказа', filterable: true },
             { id: 'clientName', label: 'Контрагент', filterable: true },
             { id: 'contractNum', label: 'Договор / Валюта', filterable: true },
-            { id: 'sum', label: 'Сумма', filterable: false }
+            { id: 'sum', label: 'Сумма', filterable: false },
+            { id: 'sumAcc', label: 'Сумма в уч. валюте', filterable: false }
         ];
     }
 
@@ -28,6 +29,11 @@ class OrderDocument extends BaseDocument {
             const sum = record.items.reduce((acc, i) => acc + (Number(i.sum) || 0), 0);
             return `<strong>${formatMoney(sum)} ${record.currency}</strong>`;
         }
+        if (colId === 'sumAcc') {
+            const sum = record.items.reduce((acc, i) => acc + (Number(i.sum) || 0), 0);
+            const sumAcc = window.convertToAccounting(sum, record.currency, record.date);
+            return `<strong>${formatMoney(sumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</strong>`;
+        }
         return record[colId] || '';
     }
 
@@ -36,6 +42,7 @@ class OrderDocument extends BaseDocument {
         const client = state.counterparties.find(c => c.id === item.counterpartyId) || {};
         const contract = state.contracts.find(c => c.id === item.contractId) || {};
         const totalSum = item.items.reduce((s, i) => s + Number(i.sum), 0);
+        const totalSumAcc = window.convertToAccounting(totalSum, item.currency, item.date);
         return `
             <div class="view-details">
                 <div class="view-fields-grid">
@@ -68,11 +75,13 @@ class OrderDocument extends BaseDocument {
                                 <th style="text-align: right; width: 100px;">Кол-во</th>
                                 <th style="text-align: right; width: 120px;">Цена</th>
                                 <th style="text-align: right; width: 140px;">Сумма</th>
+                                <th style="text-align: right; width: 140px;">Сумма в уч. вал.</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${item.items.map(it => {
                                 const prod = state.nomenclature.find(n => n.id === it.productId) || {};
+                                const sumAcc = window.convertToAccounting(it.sum, item.currency, item.date);
                                 return `
                                     <tr>
                                         <td>${prod.name || '—'}</td>
@@ -80,12 +89,14 @@ class OrderDocument extends BaseDocument {
                                         <td style="text-align: right;">${formatQty(it.qty)} пар</td>
                                         <td style="text-align: right;">${formatMoney(it.price)} ${item.currency}</td>
                                         <td style="text-align: right;"><strong>${formatMoney(it.sum)} ${item.currency}</strong></td>
+                                        <td style="text-align: right;"><strong>${formatMoney(sumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</strong></td>
                                     </tr>
                                 `;
                             }).join('')}
                             <tr style="background: rgba(255,255,255,0.02); font-weight: bold;">
                                 <td colspan="4" style="text-align: right;">Итого:</td>
                                 <td style="text-align: right; color: var(--success);">${formatMoney(totalSum)} ${item.currency}</td>
+                                <td style="text-align: right; color: var(--success);">${formatMoney(totalSumAcc)} ${(state.settings && state.settings.accountingCurrency) || 'KGS'}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -146,6 +157,7 @@ class OrderDocument extends BaseDocument {
                                 <th class="col-qty">Кол-во (пар)</th>
                                 <th class="col-price">Цена</th>
                                 <th class="col-sum">Сумма</th>
+                                <th class="col-sum">Сумма в уч. вал.</th>
                                 <th class="col-btn"></th>
                             </tr>
                         </thead>
@@ -163,8 +175,30 @@ class OrderDocument extends BaseDocument {
             const clientSelect = document.getElementById('order-client-select');
             const contractSelect = document.getElementById('order-contract-select');
             const currencyInput = document.getElementById('order-currency-input');
+            const dateInput = document.querySelector('input[name="date"]');
             const item = id ? this.getRecords().find(x => x.id === id) : null;
             const tableBody = document.querySelector('#order-items-table tbody');
+
+            const updateAllSums = () => {
+                const rows = tableBody.querySelectorAll('tr');
+                const date = dateInput.value;
+                const currency = currencyInput.value || 'KGS';
+                rows.forEach(tr => {
+                    const qtyInput = tr.querySelector('.row-item-qty');
+                    const priceInput = tr.querySelector('.row-item-price');
+                    const sumInput = tr.querySelector('.row-item-sum');
+                    const sumAccInput = tr.querySelector('.row-item-sum-acc');
+                    if (qtyInput && priceInput && sumInput && sumAccInput) {
+                        const qty = parseFormattedNumber(qtyInput.value);
+                        const price = parseFormattedNumber(priceInput.value);
+                        const sum = qty * price;
+                        sumInput.value = formatMoney(sum);
+                        
+                        const sumAcc = window.convertToAccounting(sum, currency, date);
+                        sumAccInput.value = formatMoney(sumAcc);
+                    }
+                });
+            };
 
             const updateContracts = () => {
                 const cpId = clientSelect.value;
@@ -172,6 +206,7 @@ class OrderDocument extends BaseDocument {
                     contractSelect.innerHTML = '<option value="">-- Выберите контрагента --</option>';
                     contractSelect.disabled = true;
                     currencyInput.value = '';
+                    updateAllSums();
                     return;
                 }
                 const contracts = state.contracts.filter(c => c.counterpartyId === cpId);
@@ -184,18 +219,30 @@ class OrderDocument extends BaseDocument {
                 
                 const activeCon = state.contracts.find(c => c.id === contractSelect.value);
                 currencyInput.value = activeCon ? activeCon.currency : '';
+                updateAllSums();
             };
 
-            clientSelect.addEventListener('change', updateContracts);
+            clientSelect.addEventListener('change', () => {
+                updateContracts();
+            });
             contractSelect.addEventListener('change', () => {
                 const activeCon = state.contracts.find(c => c.id === contractSelect.value);
                 currencyInput.value = activeCon ? activeCon.currency : '';
+                updateAllSums();
             });
+            dateInput.addEventListener('change', updateAllSums);
+            
             if (clientSelect.value) updateContracts();
 
             const addRow = (rowVal = null) => {
                 const tr = document.createElement('tr');
                 const products = state.nomenclature.filter(n => n.type === 'ГП' || n.type === 'КП');
+                
+                const initialDate = dateInput.value;
+                const initialCurr = currencyInput.value || 'KGS';
+                const initialSum = rowVal ? rowVal.sum : 5000;
+                const initialSumAcc = window.convertToAccounting(initialSum, initialCurr, initialDate);
+
                 tr.innerHTML = `
                     <td>
                         <select class="form-control row-item-product" required>
@@ -206,7 +253,8 @@ class OrderDocument extends BaseDocument {
                     <td><input type="text" class="form-control row-item-char" value="${rowVal ? rowVal.char : 'Размер 41-43'}" required></td>
                     <td class="col-qty"><input type="text" class="form-control row-item-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '100'}" required></td>
                     <td class="col-price"><input type="text" class="form-control row-item-price col-price" value="${rowVal ? formatMoney(rowVal.price) : '50'}" required></td>
-                    <td class="col-sum"><input type="text" class="form-control row-item-sum col-sum" value="${rowVal ? formatMoney(rowVal.sum) : formatMoney(5000)}" readonly style="background: transparent; border-color: transparent;"></td>
+                    <td class="col-sum"><input type="text" class="form-control row-item-sum col-sum" value="${formatMoney(initialSum)}" readonly style="background: transparent; border-color: transparent;"></td>
+                    <td class="col-sum"><input type="text" class="form-control row-item-sum-acc col-sum" value="${formatMoney(initialSumAcc)}" readonly style="background: transparent; border-color: transparent;"></td>
                     <td class="col-btn"><button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button></td>
                 `;
                 tableBody.appendChild(tr);
@@ -214,15 +262,22 @@ class OrderDocument extends BaseDocument {
                 const qtyInput = tr.querySelector('.row-item-qty');
                 const priceInput = tr.querySelector('.row-item-price');
                 const sumInput = tr.querySelector('.row-item-sum');
+                const sumAccInput = tr.querySelector('.row-item-sum-acc');
 
-                const updateSum = () => {
+                const updateRowSum = () => {
                     const qty = parseFormattedNumber(qtyInput.value);
                     const price = parseFormattedNumber(priceInput.value);
-                    sumInput.value = formatMoney(qty * price);
+                    const sum = qty * price;
+                    sumInput.value = formatMoney(sum);
+                    
+                    const date = dateInput.value;
+                    const currency = currencyInput.value || 'KGS';
+                    const sumAcc = window.convertToAccounting(sum, currency, date);
+                    sumAccInput.value = formatMoney(sumAcc);
                 };
 
-                qtyInput.addEventListener('input', updateSum);
-                priceInput.addEventListener('input', updateSum);
+                qtyInput.addEventListener('input', updateRowSum);
+                priceInput.addEventListener('input', updateRowSum);
                 
                 setupNumericFormatting(qtyInput, 'qty');
                 setupNumericFormatting(priceInput, 'price');

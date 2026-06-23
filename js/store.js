@@ -144,6 +144,13 @@ const DEFAULT_STATE = {
             ]
         }
     ],
+    rates: [
+        { id: 'rate_1', date: '2026-06-20', currency: 'USD', rate: 87.45 },
+        { id: 'rate_2', date: '2026-06-20', currency: 'EUR', rate: 93.80 },
+        { id: 'rate_3', date: '2026-06-20', currency: 'RUB', rate: 0.98 },
+        { id: 'rate_4', date: '2026-06-20', currency: 'KZT', rate: 0.19 },
+        { id: 'rate_5', date: '2026-06-20', currency: 'CNY', rate: 12.05 }
+    ],
     settings: {
         companyName: 'LuckySocks',
         accountingCurrency: 'KGS',
@@ -169,6 +176,9 @@ function loadState() {
             if (state.settings.decimalPlaces === undefined) {
                 state.settings.decimalPlaces = 2;
             }
+            if (!state.rates) {
+                state.rates = JSON.parse(JSON.stringify(DEFAULT_STATE.rates));
+            }
         } catch (e) {
             console.error("Ошибка парсинга LocalStorage. Загрузка демо-данных.", e);
             resetState(false);
@@ -189,3 +199,30 @@ function resetState(shouldReload = true) {
         window.location.reload();
     }
 }
+
+window.getExchangeRate = function(currency, date) {
+    if (currency === 'KGS') return 1.0;
+    if (!state.rates || state.rates.length === 0) return 1.0;
+    
+    // Filter rates for this currency
+    const currencyRates = state.rates.filter(r => r.currency === currency);
+    if (currencyRates.length === 0) return 1.0;
+    
+    // Sort by date descending
+    const sorted = [...currencyRates].sort((a, b) => b.date.localeCompare(a.date));
+    
+    // Find exact match or the latest rate preceding/on the given date
+    const rateObj = sorted.find(r => r.date <= date) || sorted[sorted.length - 1];
+    return rateObj ? Number(rateObj.rate) : 1.0;
+};
+
+window.convertToAccounting = function(amount, fromCurrency, date) {
+    const accCurrency = (state.settings && state.settings.accountingCurrency) || 'KGS';
+    if (fromCurrency === accCurrency) return amount;
+    
+    const rateFrom = window.getExchangeRate(fromCurrency, date);
+    const rateTo = window.getExchangeRate(accCurrency, date);
+    
+    if (rateTo === 0) return 0;
+    return amount * (rateFrom / rateTo);
+};

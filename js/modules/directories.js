@@ -610,13 +610,275 @@ class LineDirectory extends BaseEntityComponent {
     }
 }
 
+class ExchangeRateDirectory extends BaseEntityComponent {
+    constructor() {
+        super('rates', 'Курсы валют', 'rates');
+    }
+
+    getColumns() {
+        return [
+            { id: 'date', label: 'Дата курса', filterable: true },
+            { id: 'currency', label: 'Валюта', filterable: true },
+            { id: 'rate', label: 'Курс (к Сому)', filterable: true }
+        ];
+    }
+
+    getColumnValue(record, colId) {
+        if (colId === 'date') return record.date;
+        if (colId === 'currency') return `<span class="badge badge-info">${record.currency}</span>`;
+        if (colId === 'rate') return `<strong>${formatMoney(record.rate)}</strong>`;
+        return record[colId] || '';
+    }
+
+    getModalViewBody(id) {
+        const item = this.getRecords().find(x => x.id === id);
+        return `
+            <div class="view-details">
+                <div class="view-fields-grid">
+                    <div class="view-field">
+                        <span class="view-field-label">Дата</span>
+                        <span class="view-field-value">${item.date}</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Валюта</span>
+                        <span class="view-field-value"><span class="badge badge-info">${item.currency}</span></span>
+                    </div>
+                </div>
+                <div class="view-field">
+                    <span class="view-field-label">Курс (к Сому)</span>
+                    <span class="view-field-value"><strong>${formatMoney(item.rate)}</strong></span>
+                </div>
+            </div>
+        `;
+    }
+
+    getModalEditBody(id) {
+        const item = id ? this.getRecords().find(x => x.id === id) : { date: new Date().toISOString().split('T')[0], currency: 'USD', rate: 1.0 };
+        return `
+            <form id="dir-form">
+                <div class="form-group">
+                    <label class="form-label">Дата</label>
+                    <input type="date" class="form-control" name="date" value="${item.date}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Валюта</label>
+                    <select class="form-control" name="currency" required>
+                        <option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD - Доллар США</option>
+                        <option value="EUR" ${item.currency === 'EUR' ? 'selected' : ''}>EUR - Евро</option>
+                        <option value="RUB" ${item.currency === 'RUB' ? 'selected' : ''}>RUB - Российский рубль</option>
+                        <option value="KZT" ${item.currency === 'KZT' ? 'selected' : ''}>KZT - Казахстанский тенге</option>
+                        <option value="CNY" ${item.currency === 'CNY' ? 'selected' : ''}>CNY - Китайский юань</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Курс (к Сому)</label>
+                    <input type="text" class="form-control" name="rate" id="rate-input-field" value="${formatMoney(item.rate)}" required>
+                </div>
+            </form>
+        `;
+    }
+
+    getExtraButtons() {
+        return `
+            <button class="btn btn-secondary" id="btn-import-nbkr">
+                <i class="ph ph-download-simple"></i>
+                <span>Загрузить из НБКР</span>
+            </button>
+        `;
+    }
+
+    afterModalOpen(id, mode) {
+        if (mode === 'edit') {
+            const rateInput = document.getElementById('rate-input-field');
+            setupNumericFormatting(rateInput, 'money');
+        }
+    }
+
+    bindEvents(viewport) {
+        super.bindEvents(viewport);
+        const btnImport = document.getElementById('btn-import-nbkr');
+        if (btnImport) {
+            btnImport.addEventListener('click', () => {
+                this.openImportModal();
+            });
+        }
+    }
+
+    openImportModal() {
+        const title = 'Загрузка курсов из НБКР';
+        const today = new Date().toISOString().split('T')[0];
+        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        const body = `
+            <form id="import-nbkr-form">
+                <div class="form-group">
+                    <label class="form-label">Валюта</label>
+                    <select class="form-control" name="currency" required>
+                        <option value="USD">USD - Доллар США</option>
+                        <option value="EUR">EUR - Евро</option>
+                        <option value="RUB">RUB - Российский рубль</option>
+                        <option value="KZT">KZT - Казахстанский тенге</option>
+                        <option value="CNY">CNY - Китайский юань</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                    <div class="form-group">
+                        <label class="form-label">Дата начала</label>
+                        <input type="date" class="form-control" name="begDate" value="${monthAgo}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дата окончания</label>
+                        <input type="date" class="form-control" name="endDate" value="${today}" required>
+                    </div>
+                </div>
+            </form>
+        `;
+        const footer = `
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" id="btn-do-import">Загрузить</button>
+        `;
+        openModal(title, body, footer);
+
+        document.getElementById('btn-do-import').addEventListener('click', () => {
+            this.runImport();
+        });
+    }
+
+    async runImport() {
+        const form = document.getElementById('import-nbkr-form');
+        if (!form.reportValidity()) return;
+
+        const currency = form.currency.value;
+        const begDate = form.begDate.value;
+        const endDate = form.endDate.value;
+
+        if (begDate > endDate) {
+            alert('Дата начала не может быть позже даты окончания!');
+            return;
+        }
+
+        const currencyIds = {
+            'USD': 15,
+            'EUR': 20,
+            'RUB': 44,
+            'KZT': 40,
+            'CNY': 24
+        };
+
+        const valutaId = currencyIds[currency];
+        
+        const begParts = begDate.split('-');
+        const endParts = endDate.split('-');
+        
+        const begDay = begParts[2];
+        const begMonth = begParts[1];
+        const begYear = begParts[0];
+
+        const endDay = endParts[2];
+        const endMonth = endParts[1];
+        const endYear = endParts[0];
+
+        const nbkrUrl = `https://www.nbkr.kg/index1.jsp?item=1562&lang=RUS&valuta_id=${valutaId}&beg_day=${begDay}&beg_month=${begMonth}&beg_year=${begYear}&end_day=${endDay}&end_month=${endMonth}&end_year=${endYear}`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nbkrUrl)}`;
+
+        const btnDoImport = document.getElementById('btn-do-import');
+        btnDoImport.disabled = true;
+        btnDoImport.innerHTML = '<i class="ph ph-spinner spinner" style="margin-right: 6px;"></i>Загрузка...';
+
+        try {
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error('Ошибка сети');
+            const html = await response.text();
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const rows = doc.querySelectorAll('tr');
+            let importCount = 0;
+
+            rows.forEach(row => {
+                const dateTd = row.querySelector('.stat-center');
+                const rateTd = row.querySelector('.stat-right');
+
+                if (dateTd && rateTd) {
+                    const dateStr = dateTd.textContent.trim(); // DD.MM.YYYY
+                    const rateStr = rateTd.textContent.trim().replace(/\s/g, '').replace(',', '.');
+
+                    const dateParts = dateStr.split('.');
+                    if (dateParts.length === 3) {
+                        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+                        const rateVal = parseFloat(rateStr);
+
+                        if (!isNaN(rateVal)) {
+                            const existingIdx = state.rates.findIndex(r => r.date === formattedDate && r.currency === currency);
+                            if (existingIdx !== -1) {
+                                state.rates[existingIdx].rate = rateVal;
+                            } else {
+                                state.rates.push({
+                                    id: 'rate_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                    date: formattedDate,
+                                    currency: currency,
+                                    rate: rateVal
+                                });
+                            }
+                            importCount++;
+                        }
+                    }
+                }
+            });
+
+            saveState();
+            closeModal();
+            showToast(`Успешно загружено/обновлено курсов: ${importCount}`, 'success');
+            this.renderTable(this.currentViewport);
+        } catch (error) {
+            console.error('Ошибка импорта из НБКР:', error);
+            alert('Не удалось загрузить курсы валют из НБКР. Проверьте подключение к Интернету.');
+            btnDoImport.disabled = false;
+            btnDoImport.innerHTML = 'Загрузить';
+        }
+    }
+
+    saveRow(id) {
+        const form = document.getElementById('dir-form');
+        if (!form.reportValidity()) return;
+        const date = form.date.value;
+        const currency = form.currency.value;
+        const rate = parseFormattedNumber(form.rate.value);
+
+        const existingIdx = state.rates.findIndex(x => x.date === date && x.currency === currency && x.id !== id);
+        if (existingIdx !== -1) {
+            state.rates[existingIdx].rate = rate;
+            if (id) {
+                state.rates = state.rates.filter(x => x.id !== id);
+            }
+        } else {
+            if (id) {
+                const idx = state.rates.findIndex(x => x.id === id);
+                state.rates[idx] = { ...state.rates[idx], date, currency, rate };
+            } else {
+                state.rates.push({
+                    id: 'rate_' + Date.now(),
+                    date,
+                    currency,
+                    rate
+                });
+            }
+        }
+        saveState();
+        closeModal();
+        showToast('Курс валюты успешно сохранен!', 'success');
+        this.renderTable(this.currentViewport);
+    }
+}
+
 // Map of directories
 const dirMap = {
     'nomenclature': new NomenclatureDirectory(),
     'counterparties': new CounterpartyDirectory(),
     'employees': new EmployeeDirectory(),
     'equipment': new EquipmentDirectory(),
-    'lines': new LineDirectory()
+    'lines': new LineDirectory(),
+    'rates': new ExchangeRateDirectory()
 };
 
 let activeDirTab = 'nomenclature';
@@ -631,6 +893,7 @@ function renderDirectories(viewport, preselectTab = null) {
             <button class="tab-btn ${activeDirTab === 'employees' ? 'active' : ''}" data-dir="employees">Сотрудники</button>
             <button class="tab-btn ${activeDirTab === 'equipment' ? 'active' : ''}" data-dir="equipment">Оборудование</button>
             <button class="tab-btn ${activeDirTab === 'lines' ? 'active' : ''}" data-dir="lines">Производственные линии</button>
+            <button class="tab-btn ${activeDirTab === 'rates' ? 'active' : ''}" data-dir="rates">Курсы валют</button>
         </div>
         <div class="table-wrapper" id="dir-table-container" style="margin-top: 20px;">
             <!-- Table rendered here -->
