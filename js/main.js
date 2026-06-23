@@ -231,35 +231,35 @@ function renderDashboard(container) {
             <div class="card stat-card">
                 <div class="stat-info">
                     <span class="text-secondary font-weight-500">Заказы в работе</span>
-                    <span class="stat-value">${activeOrdersCount}</span>
+                    <span class="stat-value">${formatQty(activeOrdersCount)}</span>
                 </div>
                 <i class="ph ph-shopping-bag stat-icon"></i>
             </div>
             <div class="card stat-card">
                 <div class="stat-info">
                     <span class="text-secondary">Заказано пар</span>
-                    <span class="stat-value">${totalOrdered.toLocaleString()}</span>
+                    <span class="stat-value">${formatQty(totalOrdered)}</span>
                 </div>
                 <i class="ph ph-hash stat-icon" style="color: var(--info); background: var(--info-bg);"></i>
             </div>
             <div class="card stat-card">
                 <div class="stat-info">
                     <span class="text-secondary">Связано (ПФ)</span>
-                    <span class="stat-value">${totalKnitted.toLocaleString()}</span>
+                    <span class="stat-value">${formatQty(totalKnitted)}</span>
                 </div>
                 <i class="ph ph-needle stat-icon" style="color: var(--info); background: var(--info-bg);"></i>
             </div>
             <div class="card stat-card">
                 <div class="stat-info">
                     <span class="text-secondary">Прошито (ГП)</span>
-                    <span class="stat-value">${totalSewn.toLocaleString()}</span>
+                    <span class="stat-value">${formatQty(totalSewn)}</span>
                 </div>
                 <i class="ph ph-scissors stat-icon" style="color: var(--primary-hover); background: var(--primary-glow);"></i>
             </div>
             <div class="card stat-card">
                 <div class="stat-info">
                     <span class="text-secondary">Упаковано</span>
-                    <span class="stat-value">${totalPackaged.toLocaleString()}</span>
+                    <span class="stat-value">${formatQty(totalPackaged)}</span>
                 </div>
                 <i class="ph ph-package stat-icon" style="color: var(--success); background: var(--success-bg);"></i>
             </div>
@@ -306,15 +306,15 @@ function renderDashboard(container) {
                         <div class="line-stats">
                             <div class="line-stat-row">
                                 <span class="text-secondary">Вязальных станков:</span>
-                                <strong>${machines.length} шт.</strong>
+                                <strong>${formatQty(machines.length)} шт.</strong>
                             </div>
                             <div class="line-stat-row">
                                 <span class="text-secondary">Операторов на линии:</span>
-                                <strong>${ops.length} чел.</strong>
+                                <strong>${formatQty(ops.length)} чел.</strong>
                             </div>
                             <div class="line-stat-row">
                                 <span class="text-secondary">Выпуск заготовки (смена):</span>
-                                <strong>${lineKnitQty} шт. (${Math.round(lineKnitQty/2)} пар)</strong>
+                                <strong>${formatQty(lineKnitQty)} шт. (${formatQty(Math.round(lineKnitQty/2))} пар)</strong>
                             </div>
                         </div>
                         <div style="margin-top: 8px;">
@@ -376,7 +376,7 @@ function renderReports(container) {
                                 <td>${ord.date}</td>
                                 <td>${ord.clientName}</td>
                                 <td>${ord.items.length} наим.</td>
-                                <td><strong>${totalOrdered.toLocaleString()} пар</strong></td>
+                                <td><strong>${formatQty(totalOrdered)} пар</strong></td>
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         <div class="progress-bar-track" style="flex-grow:1; height: 8px;">
@@ -412,18 +412,18 @@ function renderReports(container) {
                                                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
                                                         <td style="padding: 12px 8px;"><strong>${item.name}</strong></td>
                                                         <td style="padding: 12px 8px;" class="text-secondary">${item.char}</td>
-                                                        <td style="padding: 12px 8px; text-align: right;"><strong>${item.orderedPairs} пар</strong></td>
-                                                        <td style="padding: 12px 8px; text-align: right; color: var(--info);">${item.plannedPairs} пар</td>
+                                                        <td style="padding: 12px 8px; text-align: right;"><strong>${formatQty(item.orderedPairs)} пар</strong></td>
+                                                        <td style="padding: 12px 8px; text-align: right; color: var(--info);">${formatQty(item.plannedPairs)} пар</td>
                                                         <td style="padding: 12px 8px; text-align: right;">
-                                                            <div style="font-weight: 600; color: var(--info);">${item.knittedPairs} пар</div>
-                                                            <span style="font-size:10px; color: var(--text-muted);">${item.knittedPairs*2} шт ПФ (${knitPercent}%)</span>
+                                                            <div style="font-weight: 600; color: var(--info);">${formatQty(item.knittedPairs)} пар</div>
+                                                            <span style="font-size:10px; color: var(--text-muted);">${formatQty(item.knittedPairs*2)} шт ПФ (${knitPercent}%)</span>
                                                         </td>
                                                         <td style="padding: 12px 8px; text-align: right;">
-                                                            <div style="font-weight: 600; color: var(--primary-hover);">${item.sewnPairs} пар</div>
+                                                            <div style="font-weight: 600; color: var(--primary-hover);">${formatQty(item.sewnPairs)} пар</div>
                                                             <span style="font-size:10px; color: var(--text-muted);">${sewPercent}% от ПФ</span>
                                                         </td>
                                                         <td style="padding: 12px 8px; text-align: right;">
-                                                            <div style="font-weight: 600; color: var(--success);">${item.packagedPairs} пар</div>
+                                                            <div style="font-weight: 600; color: var(--success);">${formatQty(item.packagedPairs)} пар</div>
                                                             <span style="font-size:10px; color: var(--text-muted);">${packPercent}% от швейки</span>
                                                         </td>
                                                     </tr>
@@ -433,9 +433,9 @@ function renderReports(container) {
                                                         <td colspan="7" style="padding: 4px 8px 12px 8px;">
                                                             <div class="stage-progress-container">
                                                                 <div class="progress-bar-track">
-                                                                    <div class="progress-segment progress-segment-knitted" style="width: ${(item.knittedPairs/item.orderedPairs)*100}%; max-width: 100%;" title="Вязка: ${item.knittedPairs} пар"></div>
-                                                                    <div class="progress-segment progress-segment-sewn" style="width: ${(item.sewnPairs/item.orderedPairs)*100}%; max-width: 100%;" title="Прошив: ${item.sewnPairs} пар"></div>
-                                                                    <div class="progress-segment progress-segment-packaged" style="width: ${(item.packagedPairs/item.orderedPairs)*100}%; max-width: 100%;" title="Упаковка: ${item.packagedPairs} пар"></div>
+                                                                    <div class="progress-segment progress-segment-knitted" style="width: ${(item.knittedPairs/item.orderedPairs)*100}%; max-width: 100%;" title="Вязка: ${formatQty(item.knittedPairs)} пар"></div>
+                                                                    <div class="progress-segment progress-segment-sewn" style="width: ${(item.sewnPairs/item.orderedPairs)*100}%; max-width: 100%;" title="Прошив: ${formatQty(item.sewnPairs)} пар"></div>
+                                                                    <div class="progress-segment progress-segment-packaged" style="width: ${(item.packagedPairs/item.orderedPairs)*100}%; max-width: 100%;" title="Упаковка: ${formatQty(item.packagedPairs)} пар"></div>
                                                                 </div>
                                                                 <div class="stage-labels-row">
                                                                     <span>Вязание: ${Math.round((item.knittedPairs/item.orderedPairs)*100)}%</span>

@@ -26,7 +26,7 @@ class OrderDocument extends BaseDocument {
         }
         if (colId === 'sum') {
             const sum = record.items.reduce((acc, i) => acc + (Number(i.sum) || 0), 0);
-            return `<strong>${sum.toLocaleString()} ${record.currency}</strong>`;
+            return `<strong>${formatMoney(sum)} ${record.currency}</strong>`;
         }
         return record[colId] || '';
     }
@@ -65,15 +65,15 @@ class OrderDocument extends BaseDocument {
                                     <tr>
                                         <td>${prod.name || '—'}</td>
                                         <td class="text-secondary">${it.char}</td>
-                                        <td style="text-align: right;">${it.qty.toLocaleString()} пар</td>
-                                        <td style="text-align: right;">${it.price.toLocaleString()} ${item.currency}</td>
-                                        <td style="text-align: right;"><strong>${it.sum.toLocaleString()} ${item.currency}</strong></td>
+                                        <td style="text-align: right;">${formatQty(it.qty)} пар</td>
+                                        <td style="text-align: right;">${formatMoney(it.price)} ${item.currency}</td>
+                                        <td style="text-align: right;"><strong>${formatMoney(it.sum)} ${item.currency}</strong></td>
                                     </tr>
                                 `;
                             }).join('')}
                             <tr style="background: rgba(255,255,255,0.02); font-weight: bold;">
                                 <td colspan="4" style="text-align: right;">Итого:</td>
-                                <td style="text-align: right; color: var(--success);">${totalSum.toLocaleString()} ${item.currency}</td>
+                                <td style="text-align: right; color: var(--success);">${formatMoney(totalSum)} ${item.currency}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -131,10 +131,10 @@ class OrderDocument extends BaseDocument {
                             <tr>
                                 <th>Номенклатура ГП</th>
                                 <th>Характеристика</th>
-                                <th style="width: 110px;">Кол-во (пар)</th>
-                                <th style="width: 110px;">Цена</th>
-                                <th style="width: 110px;">Сумма</th>
-                                <th style="width: 50px;"></th>
+                                <th class="col-qty">Кол-во (пар)</th>
+                                <th class="col-price">Цена</th>
+                                <th class="col-sum">Сумма</th>
+                                <th class="col-btn"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -192,10 +192,10 @@ class OrderDocument extends BaseDocument {
                         </select>
                     </td>
                     <td><input type="text" class="form-control row-item-char" value="${rowVal ? rowVal.char : 'Размер 41-43'}" required></td>
-                    <td><input type="number" class="form-control row-item-qty" value="${rowVal ? rowVal.qty : 100}" min="1" required style="text-align: right;"></td>
-                    <td><input type="number" class="form-control row-item-price" value="${rowVal ? rowVal.price : 50}" min="0.01" step="0.01" required style="text-align: right;"></td>
-                    <td><input type="text" class="form-control row-item-sum" value="${rowVal ? rowVal.sum : 5000}" readonly style="text-align: right; background: transparent; border-color: transparent;"></td>
-                    <td><button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button></td>
+                    <td class="col-qty"><input type="number" class="form-control row-item-qty col-qty" value="${rowVal ? rowVal.qty : 100}" min="1" required></td>
+                    <td class="col-price"><input type="number" class="form-control row-item-price col-price" value="${rowVal ? rowVal.price : 50}" min="0.01" step="0.01" required></td>
+                    <td class="col-sum"><input type="text" class="form-control row-item-sum col-sum" value="${rowVal ? rowVal.sum : 5000}" readonly style="background: transparent; border-color: transparent;"></td>
+                    <td class="col-btn"><button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button></td>
                 `;
                 tableBody.appendChild(tr);
 
@@ -297,11 +297,11 @@ class SpecificationDocument extends BaseDocument {
         if (colId === 'name') return record.name;
         if (colId === 'machineNum') return `<span class="badge badge-info">${record.machineNum}</span>`;
         if (colId === 'genderColor') return `${record.color} / ${record.gender}`;
-        if (colId === 'sewingTimeSec') return `<strong>${record.sewingTimeSec} сек</strong>`;
+        if (colId === 'sewingTimeSec') return `<strong>${formatQty(record.sewingTimeSec)} сек</strong>`;
         if (colId === 'materials') {
             return record.materials.map(m => {
                 const mat = state.nomenclature.find(n => n.id === m.id) || {};
-                return `<span class="badge badge-success" style="margin-right: 4px;">${mat.name}: ${m.qty} кг/шт</span>`;
+                return `<span class="badge badge-success" style="margin-right: 4px;">${mat.name}: ${formatRate(m.qty)} кг/шт</span>`;
             }).join('');
         }
         return record[colId] || '';
@@ -321,14 +321,14 @@ class SpecificationDocument extends BaseDocument {
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                     <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Станок по умолчанию</span><span class="badge badge-info">${item.machineNum}</span></div>
                     <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Цвет / Пол</span><span>${item.color} / ${item.gender}</span></div>
-                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Время пошива 1 шт</span><strong>${item.sewingTimeSec} сек</strong></div>
+                    <div><span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 2px;">Время пошива 1 шт</span><strong>${formatQty(item.sewingTimeSec)} сек</strong></div>
                 </div>
                 <div>
                     <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px;">Нормы расхода сырья на единицу</span>
                     <ul>
                         ${item.materials.map(m => {
                             const mat = state.nomenclature.find(n => n.id === m.id) || {};
-                            return `<li>${mat.name}: <strong>${m.qty} кг/шт</strong></li>`;
+                            return `<li>${mat.name}: <strong>${formatRate(m.qty)} кг/шт</strong></li>`;
                         }).join('') || '<li>Нормы не заданы</li>'}
                     </ul>
                 </div>
@@ -516,7 +516,7 @@ class PlanningDocument extends BaseDocument {
         if (colId === 'distribution') {
             return record.items.map(pi => {
                 const lineObj = state.lines.find(l => l.id === pi.lineId) || {};
-                return `<div style="margin-bottom: 4px;"><span class="badge badge-info">${pi.planNum}</span> на <strong>${lineObj.name || '—'}</strong> (${pi.qty.toLocaleString()} пар)</div>`;
+                return `<div style="margin-bottom: 4px;"><span class="badge badge-info">${pi.planNum}</span> на <strong>${lineObj.name || '—'}</strong> (${formatQty(pi.qty)} пар)</div>`;
             }).join('');
         }
         return record[colId] || '';
@@ -550,7 +550,7 @@ class PlanningDocument extends BaseDocument {
                                     <tr>
                                         <td>${prod.name || '—'}</td>
                                         <td><strong>${line.name || '—'}</strong></td>
-                                        <td style="text-align: right;">${it.qty.toLocaleString()} пар</td>
+                                        <td style="text-align: right;">${formatQty(it.qty)} пар</td>
                                         <td style="text-align: center;"><span class="badge badge-info">${it.planNum}</span></td>
                                     </tr>
                                 `;
@@ -746,7 +746,7 @@ class ReleaseDocument extends BaseDocument {
                 <div style="margin-bottom: 4px;">
                     Станок <span class="badge badge-info">${ri.machineNum}</span> | 
                     План <span class="badge badge-success">${ri.planNum}</span> : 
-                    <strong>${ri.qty.toLocaleString()} шт ПФ</strong> (${Math.round(ri.qty/2)} пар)
+                    <strong>${formatQty(ri.qty)} шт ПФ</strong> (${formatQty(Math.round(ri.qty/2))} пар)
                 </div>
             `).join('');
         }
@@ -778,8 +778,8 @@ class ReleaseDocument extends BaseDocument {
                                 <tr>
                                     <td>Станок <strong>${it.machineNum}</strong></td>
                                     <td><span class="badge badge-success">${it.planNum}</span></td>
-                                    <td style="text-align: right;">${it.qty.toLocaleString()} шт.</td>
-                                    <td style="text-align: right;"><strong>${Math.round(it.qty / 2).toLocaleString()} пар</strong></td>
+                                    <td style="text-align: right;">${formatQty(it.qty)} шт.</td>
+                                    <td style="text-align: right;"><strong>${formatQty(Math.round(it.qty / 2))} пар</strong></td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -957,7 +957,7 @@ class SewingDocument extends BaseDocument {
                     <div style="margin-bottom: 4px;">
                         Швея: <strong>${seam.name ? seam.name.split(' ')[0] : '—'}</strong> | 
                         План: <span class="badge badge-info">${si.planNum}</span> | 
-                        Выпущено ГП: <strong>${si.qty.toLocaleString()} пар</strong>
+                        Выпущено ГП: <strong>${formatQty(si.qty)} пар</strong>
                     </div>
                 `;
             }).join('');
@@ -991,7 +991,7 @@ class SewingDocument extends BaseDocument {
                                     <tr>
                                         <td><strong>${seam.name || '—'}</strong></td>
                                         <td><span class="badge badge-info">${it.planNum}</span></td>
-                                        <td style="text-align: right;"><strong>${it.qty.toLocaleString()} пар</strong></td>
+                                        <td style="text-align: right;"><strong>${formatQty(it.qty)} пар</strong></td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -1165,7 +1165,7 @@ class PackagingDocument extends BaseDocument {
             return record.items.map(pi => `
                 <div style="margin-bottom: 4px;">
                     План <span class="badge badge-success">${pi.planNum}</span> : 
-                    <strong>${pi.qty.toLocaleString()} пар ГП</strong> упаковано
+                    <strong>${formatQty(pi.qty)} пар ГП</strong> упаковано
                 </div>
             `).join('');
         }
@@ -1193,7 +1193,7 @@ class PackagingDocument extends BaseDocument {
                             ${item.items.map(it => `
                                 <tr>
                                     <td><span class="badge badge-success">${it.planNum}</span></td>
-                                    <td style="text-align: right;"><strong>${it.qty.toLocaleString()} пар</strong></td>
+                                    <td style="text-align: right;"><strong>${formatQty(it.qty)} пар</strong></td>
                                 </tr>
                             `).join('')}
                         </tbody>

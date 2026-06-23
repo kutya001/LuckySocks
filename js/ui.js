@@ -112,3 +112,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+window.formatMoney = function(value) {
+    const num = Number(value) || 0;
+    const useDec = (window.state && window.state.settings && window.state.settings.useDecimals !== undefined) 
+        ? window.state.settings.useDecimals 
+        : true;
+    const decPlaces = (window.state && window.state.settings && window.state.settings.decimalPlaces !== undefined) 
+        ? window.state.settings.decimalPlaces 
+        : 2;
+    
+    return num.toLocaleString('ru-RU', {
+        minimumFractionDigits: useDec ? decPlaces : 0,
+        maximumFractionDigits: useDec ? decPlaces : 0
+    });
+};
+
+window.formatQty = function(value) {
+    const num = Number(value) || 0;
+    return num.toLocaleString('ru-RU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    });
+};
+
+window.formatRate = function(value) {
+    const num = Number(value) || 0;
+    return num.toLocaleString('ru-RU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 5
+    });
+};
+

@@ -147,7 +147,9 @@ const DEFAULT_STATE = {
     settings: {
         companyName: 'Socks.Pro Производство',
         accountingCurrency: 'KGS',
-        phoneFormat: '+996 (XXX) XX-XX-XX'
+        phoneFormat: '+996 (XXX) XX-XX-XX',
+        useDecimals: true,
+        decimalPlaces: 2
     }
 };
 
@@ -160,6 +162,12 @@ function loadState() {
             state = JSON.parse(saved);
             if (!state.settings) {
                 state.settings = JSON.parse(JSON.stringify(DEFAULT_STATE.settings));
+            }
+            if (state.settings.useDecimals === undefined) {
+                state.settings.useDecimals = true;
+            }
+            if (state.settings.decimalPlaces === undefined) {
+                state.settings.decimalPlaces = 2;
             }
         } catch (e) {
             console.error("Ошибка парсинга LocalStorage. Загрузка демо-данных.", e);
