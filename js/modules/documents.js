@@ -204,9 +204,9 @@ class OrderDocument extends BaseDocument {
                         </select>
                     </td>
                     <td><input type="text" class="form-control row-item-char" value="${rowVal ? rowVal.char : 'Размер 41-43'}" required></td>
-                    <td class="col-qty"><input type="number" class="form-control row-item-qty col-qty" value="${rowVal ? rowVal.qty : 100}" min="1" required></td>
-                    <td class="col-price"><input type="number" class="form-control row-item-price col-price" value="${rowVal ? rowVal.price : 50}" min="0.01" step="0.01" required></td>
-                    <td class="col-sum"><input type="text" class="form-control row-item-sum col-sum" value="${rowVal ? rowVal.sum : 5000}" readonly style="background: transparent; border-color: transparent;"></td>
+                    <td class="col-qty"><input type="text" class="form-control row-item-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '100'}" required></td>
+                    <td class="col-price"><input type="text" class="form-control row-item-price col-price" value="${rowVal ? formatMoney(rowVal.price) : '50'}" required></td>
+                    <td class="col-sum"><input type="text" class="form-control row-item-sum col-sum" value="${rowVal ? formatMoney(rowVal.sum) : formatMoney(5000)}" readonly style="background: transparent; border-color: transparent;"></td>
                     <td class="col-btn"><button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button></td>
                 `;
                 tableBody.appendChild(tr);
@@ -216,13 +216,17 @@ class OrderDocument extends BaseDocument {
                 const sumInput = tr.querySelector('.row-item-sum');
 
                 const updateSum = () => {
-                    const qty = Number(qtyInput.value) || 0;
-                    const price = Number(priceInput.value) || 0;
-                    sumInput.value = (qty * price).toFixed(2);
+                    const qty = parseFormattedNumber(qtyInput.value);
+                    const price = parseFormattedNumber(priceInput.value);
+                    sumInput.value = formatMoney(qty * price);
                 };
 
                 qtyInput.addEventListener('input', updateSum);
                 priceInput.addEventListener('input', updateSum);
+                
+                setupNumericFormatting(qtyInput, 'qty');
+                setupNumericFormatting(priceInput, 'price');
+                
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
             };
 
@@ -249,8 +253,8 @@ class OrderDocument extends BaseDocument {
         itemRows.forEach((tr, idx) => {
             const productId = tr.querySelector('.row-item-product').value;
             const char = tr.querySelector('.row-item-char').value;
-            const qty = Number(tr.querySelector('.row-item-qty').value);
-            const price = Number(tr.querySelector('.row-item-price').value);
+            const qty = parseFormattedNumber(tr.querySelector('.row-item-qty').value);
+            const price = parseFormattedNumber(tr.querySelector('.row-item-price').value);
             const sum = qty * price;
             
             items.push({ id: 'item_' + idx + '_' + Date.now(), productId, char, qty, price, sum });
@@ -429,7 +433,7 @@ class SpecificationDocument extends BaseDocument {
                     </div>
                     <div class="form-group">
                         <label class="form-label">Пошив (сек)</label>
-                        <input type="number" class="form-control" name="sewingTimeSec" value="${doc.sewingTimeSec}" min="1" required>
+                        <input type="text" class="form-control" name="sewingTimeSec" id="spec-sewing-time-input" value="${formatQty(doc.sewingTimeSec)}" required>
                     </div>
                 </div>
                 <h4 style="margin: 20px 0 10px 0;">Нормы расхода сырья на пару готовой продукции</h4>
@@ -459,6 +463,9 @@ class SpecificationDocument extends BaseDocument {
             const tableBody = document.querySelector('#spec-materials-table tbody');
             const item = id ? this.getRecords().find(x => x.id === id) : null;
             
+            const sewingTimeInput = document.getElementById('spec-sewing-time-input');
+            setupNumericFormatting(sewingTimeInput, 'qty');
+            
             const addRow = (rowVal = null) => {
                 const tr = document.createElement('tr');
                 const rawMaterials = state.nomenclature.filter(n => n.type === 'С' || n.type === 'ПФ');
@@ -470,13 +477,17 @@ class SpecificationDocument extends BaseDocument {
                         </select>
                     </td>
                     <td class="col-price">
-                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 0.01}" step="0.001" min="0.0001" required>
+                        <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatRate(rowVal.qty) : '0.01'}" required>
                     </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
+                
+                const rowQtyInput = tr.querySelector('.row-qty');
+                setupNumericFormatting(rowQtyInput, 'rate');
+                
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
             };
 
@@ -500,7 +511,7 @@ class SpecificationDocument extends BaseDocument {
         trs.forEach(tr => {
             materials.push({
                 id: tr.querySelector('.row-material-select').value,
-                qty: Number(tr.querySelector('.row-qty').value)
+                qty: parseFormattedNumber(tr.querySelector('.row-qty').value)
             });
         });
 
@@ -512,7 +523,7 @@ class SpecificationDocument extends BaseDocument {
             machineNum: fd.get('machineNum'),
             color: fd.get('color'),
             gender: fd.get('gender'),
-            sewingTimeSec: Number(fd.get('sewingTimeSec')),
+            sewingTimeSec: parseFormattedNumber(document.getElementById('spec-sewing-time-input').value),
             materials
         };
 
@@ -685,7 +696,7 @@ class PlanningDocument extends BaseDocument {
                         </select>
                     </td>
                     <td class="col-qty">
-                        <input type="number" class="form-control row-qty col-qty" value="${rowVal ? rowVal.qty : 1000}" min="1" required>
+                        <input type="text" class="form-control row-qty col-qty" value="${rowVal ? formatQty(rowVal.qty) : '1 000'}" required>
                     </td>
                     <td>
                         <input type="text" class="form-control row-plannum" value="${rowVal ? rowVal.planNum : ''}" required readonly style="text-align: center; background: rgba(255,255,255,0.03);">
@@ -695,6 +706,9 @@ class PlanningDocument extends BaseDocument {
                     </td>
                 `;
                 itemsTableBody.appendChild(tr);
+                
+                const rowQtyInput = tr.querySelector('.row-qty');
+                setupNumericFormatting(rowQtyInput, 'qty');
 
                 const lineSelect = tr.querySelector('.row-line-select');
                 const planNumInput = tr.querySelector('.row-plannum');
@@ -740,7 +754,7 @@ class PlanningDocument extends BaseDocument {
             items.push({
                 productId: tr.querySelector('.row-product-select').value,
                 lineId: tr.querySelector('.row-line-select').value,
-                qty: Number(tr.querySelector('.row-qty').value),
+                qty: parseFormattedNumber(tr.querySelector('.row-qty').value),
                 planNum: tr.querySelector('.row-plannum').value
             });
         });
@@ -920,13 +934,17 @@ class ReleaseDocument extends BaseDocument {
                         </select>
                     </td>
                     <td class="col-price">
-                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 1000}" min="1" required>
+                        <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatQty(rowVal.qty) : '1 000'}" required>
                     </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
                 itemsTableBody.appendChild(tr);
+                
+                const rowQtyInput = tr.querySelector('.row-qty');
+                setupNumericFormatting(rowQtyInput, 'qty');
+                
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
             };
 
@@ -956,7 +974,7 @@ class ReleaseDocument extends BaseDocument {
             items.push({
                 machineNum: tr.querySelector('.row-machine-select').value,
                 planNum: tr.querySelector('.row-plannum-select').value,
-                qty: Number(tr.querySelector('.row-qty').value)
+                qty: parseFormattedNumber(tr.querySelector('.row-qty').value)
             });
         });
 
@@ -1140,13 +1158,17 @@ class SewingDocument extends BaseDocument {
                         </select>
                     </td>
                     <td class="col-price">
-                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 500}" min="1" required>
+                        <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatQty(rowVal.qty) : '500'}" required>
                     </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
                 itemsTableBody.appendChild(tr);
+                
+                const rowQtyInput = tr.querySelector('.row-qty');
+                setupNumericFormatting(rowQtyInput, 'qty');
+                
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
             };
 
@@ -1176,7 +1198,7 @@ class SewingDocument extends BaseDocument {
             items.push({
                 seamstressId: tr.querySelector('.row-seamstress-select').value,
                 planNum: tr.querySelector('.row-plannum-select').value,
-                qty: Number(tr.querySelector('.row-qty').value)
+                qty: parseFormattedNumber(tr.querySelector('.row-qty').value)
             });
         });
 
@@ -1329,13 +1351,17 @@ class PackagingDocument extends BaseDocument {
                         </select>
                     </td>
                     <td class="col-price">
-                        <input type="number" class="form-control row-qty col-price" value="${rowVal ? rowVal.qty : 500}" min="1" required>
+                        <input type="text" class="form-control row-qty col-price" value="${rowVal ? formatQty(rowVal.qty) : '500'}" required>
                     </td>
                     <td class="col-btn">
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
                 itemsTableBody.appendChild(tr);
+                
+                const rowQtyInput = tr.querySelector('.row-qty');
+                setupNumericFormatting(rowQtyInput, 'qty');
+                
                 tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
             };
 
@@ -1359,7 +1385,7 @@ class PackagingDocument extends BaseDocument {
         trs.forEach(tr => {
             items.push({
                 planNum: tr.querySelector('.row-plannum-select').value,
-                qty: Number(tr.querySelector('.row-qty').value)
+                qty: parseFormattedNumber(tr.querySelector('.row-qty').value)
             });
         });
 

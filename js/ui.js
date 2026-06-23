@@ -143,3 +143,46 @@ window.formatRate = function(value) {
     });
 };
 
+window.parseFormattedNumber = function(val) {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const clean = val.toString().replace(/\s/g, '').replace(/\u00a0/g, '').replace(/,/g, '.');
+    const parsed = parseFloat(clean);
+    return isNaN(parsed) ? 0 : parsed;
+};
+
+window.setupNumericFormatting = function(input, type) {
+    if (!input) return;
+
+    const sanitize = (val) => {
+        return val.replace(/[^0-9.,-]/g, '');
+    };
+
+    input.addEventListener('focus', () => {
+        let val = input.value;
+        val = val.replace(/\s/g, '').replace(/\u00a0/g, '');
+        input.value = val;
+        setTimeout(() => input.select(), 0);
+    });
+
+    input.addEventListener('input', () => {
+        if (document.activeElement === input) {
+            input.value = sanitize(input.value);
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        const num = window.parseFormattedNumber(input.value);
+        if (type === 'money' || type === 'price' || type === 'sum') {
+            input.value = window.formatMoney(num);
+        } else if (type === 'rate') {
+            input.value = window.formatRate(num);
+        } else {
+            input.value = window.formatQty(num);
+        }
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+};
+
+
