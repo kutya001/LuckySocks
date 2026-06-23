@@ -2151,7 +2151,7 @@ class PmpDocument extends BaseDocument {
         return [
             { id: 'month', label: 'Месяц планирования', filterable: true },
             { id: 'workingDays', label: 'Рабочих дней', filterable: true },
-            { id: 'hoursNorm', label: 'Норма часов / день', filterable: false },
+            { id: 'hoursNorm', label: 'Норма часов / day', filterable: false },
             { id: 'efficiencyCoef', label: 'Коэф. выработки (%)', filterable: false },
             { id: 'totals', label: 'Планируемый выпуск по этапам', filterable: false }
         ];
@@ -2163,7 +2163,7 @@ class PmpDocument extends BaseDocument {
         if (colId === 'hoursNorm') return `${record.hoursNorm} ч.`;
         if (colId === 'efficiencyCoef') return `${record.efficiencyCoef}%`;
         if (colId === 'totals') {
-            const kn = record.items.filter(it => it.stage === 'Вязание').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+            const kn = record.items.filter(it => it.stage === 'Вязальный' || it.stage === 'Вязание').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
             const sw = record.items.filter(it => it.stage === 'Прошив').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
             const pk = record.items.filter(it => it.stage === 'Упаковка').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
             return `
@@ -2241,26 +2241,49 @@ class PmpDocument extends BaseDocument {
 
     getModalViewBody(id) {
         const item = this.getRecords().find(x => x.id === id);
-        const act = this.getActualsForMonth(item.month);
-        
-        // Sum planned stage totals
-        const planKn = item.items.filter(it => it.stage === 'Вязание').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
-        const planSw = item.items.filter(it => it.stage === 'Прошив').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
-        const planPk = item.items.filter(it => it.stage === 'Упаковка').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
 
-        // Calculate % execution
-        const pctKn = planKn > 0 ? Math.round((act.knittedQty / planKn) * 100) : 0;
-        const pctSw = planSw > 0 ? Math.round((act.sewnQty / planSw) * 100) : 0;
-        const pctPk = planPk > 0 ? Math.round((act.packagedQty / planPk) * 100) : 0;
-
-        // Plan machines count
-        const planKnMachines = item.items.filter(it => it.stage === 'Вязание').reduce((s, it) => s + (Number(it.machinesCount) || 0), 0);
-        const planSwMachines = item.items.filter(it => it.stage === 'Прошив').reduce((s, it) => s + (Number(it.machinesCount) || 0), 0);
-        const planPkMachines = item.items.filter(it => it.stage === 'Упаковка').reduce((s, it) => s + (Number(it.machinesCount) || 0), 0);
+        const renderStageTable = (stageName, color, icon) => {
+            const stageItems = item.items.filter(it => it.stage === stageName || (stageName === 'Вязальный' && it.stage === 'Вязание'));
+            if (stageItems.length === 0) return '';
+            const unit = stageName === 'Вязальный' ? 'шт' : 'пар';
+            return `
+                <div style="margin-bottom: 20px;">
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: ${color};"><i class="${icon}"></i> ${stageName}</span>
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Производственная линия</th>
+                                <th style="text-align: right; width: 130px;">Кол-во оборудования</th>
+                                <th style="text-align: right; width: 110px;">Рабочих часов</th>
+                                <th style="text-align: right; width: 110px;">Норма сек</th>
+                                <th style="text-align: right; width: 140px;">Плановый объем сек</th>
+                                <th style="text-align: right; width: 140px;">Плановый объем ${unit}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                             ${stageItems.map(it => {
+                                 const line = state.lines.find(l => l.id === it.lineId) || {};
+                                 const plannedSec = it.plannedSec || Math.round((it.machinesCount || 0) * (item.workingDays || 0) * (it.hoursPerDay || 0) * 3600 * ((item.efficiencyCoef || 0) / 100));
+                                 return `
+                                     <tr>
+                                         <td><strong>${line.name || '—'}</strong></td>
+                                         <td style="text-align: right;">${formatQty(it.machinesCount)} шт.</td>
+                                         <td style="text-align: right;">${formatQty(it.hoursPerDay)} ч.</td>
+                                         <td style="text-align: right;">${formatQty(it.cycleTimeSec)} сек.</td>
+                                         <td style="text-align: right;">${formatQty(plannedSec)} сек.</td>
+                                         <td style="text-align: right;"><strong>${formatQty(it.plannedQty)} ${unit}</strong></td>
+                                     </tr>
+                                 `;
+                             }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
 
         return `
             <div class="view-details">
-                <div class="view-fields-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
+                <div class="view-fields-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
                     <div class="view-field">
                         <span class="view-field-label">Месяц планирования</span>
                         <span class="view-field-value"><strong>${item.month}</strong></span>
@@ -2279,83 +2302,9 @@ class PmpDocument extends BaseDocument {
                     </div>
                 </div>
 
-                <div>
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Спецификация плана мощностей</span>
-                    <table class="data-table" style="width: 100%; font-size: 12px; margin-bottom: 20px;">
-                        <thead>
-                            <tr>
-                                <th>Линия</th>
-                                <th>Этап производства</th>
-                                <th style="text-align: right; width: 110px;">Оборудование</th>
-                                <th style="text-align: right; width: 110px;">Рабочих часов</th>
-                                <th style="text-align: right; width: 110px;">Цикл (сек)</th>
-                                <th style="text-align: right; width: 150px;">Плановый объем</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${item.items.map(it => {
-                                const line = state.lines.find(l => l.id === it.lineId) || {};
-                                const unit = it.stage === 'Вязание' ? 'шт' : 'пар';
-                                return `
-                                    <tr>
-                                        <td><strong>${line.name || '—'}</strong></td>
-                                        <td><span class="badge badge-secondary">${it.stage}</span></td>
-                                        <td style="text-align: right;">${it.machinesCount} шт.</td>
-                                        <td style="text-align: right;">${it.hoursPerDay} ч/сут.</td>
-                                        <td style="text-align: right;">${it.cycleTimeSec} сек.</td>
-                                        <td style="text-align: right;"><strong>${formatQty(it.plannedQty)} ${unit}</strong></td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Сравнение План-Факт за ${item.month}</span>
-                    <table class="data-table" style="width: 100%; font-size: 12px;">
-                        <thead>
-                            <tr>
-                                <th>Этап производства</th>
-                                <th style="text-align: right;">План (объем)</th>
-                                <th style="text-align: right;">Факт (объем)</th>
-                                <th style="text-align: center;">Выполнение (%)</th>
-                                <th style="text-align: right;">План (оборуд.)</th>
-                                <th style="text-align: right;">Факт (оборуд.)</th>
-                                <th style="text-align: right;">План (дней)</th>
-                                <th style="text-align: right;">Факт (дней)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Вязальный</strong></td>
-                                <td style="text-align: right;">${formatQty(planKn)} шт.</td>
-                                <td style="text-align: right;">${formatQty(act.knittedQty)} шт.</td>
-                                <td style="text-align: center; font-weight: bold; color: ${pctKn >= 100 ? 'var(--success)' : (pctKn >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctKn}%</td>
-                                <td style="text-align: right;">${planKnMachines} шт.</td>
-                                <td style="text-align: right;">${act.knittingMachines} шт.</td>
-                                <td style="text-align: right;" rowspan="3">${item.workingDays} дней</td>
-                                <td style="text-align: right;" rowspan="3">${act.workingDays} дней</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Прошив</strong></td>
-                                <td style="text-align: right;">${formatQty(planSw)} пар</td>
-                                <td style="text-align: right;">${formatQty(act.sewnQty)} пар</td>
-                                <td style="text-align: center; font-weight: bold; color: ${pctSw >= 100 ? 'var(--success)' : (pctSw >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctSw}%</td>
-                                <td style="text-align: right;">${planSwMachines} швей</td>
-                                <td style="text-align: right;">${act.sewingMachines} швей</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Упаковка</strong></td>
-                                <td style="text-align: right;">${formatQty(planPk)} пар</td>
-                                <td style="text-align: right;">${formatQty(act.packagedQty)} пар</td>
-                                <td style="text-align: center; font-weight: bold; color: ${pctPk >= 100 ? 'var(--success)' : (pctPk >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctPk}%</td>
-                                <td style="text-align: right;">${planPkMachines} столов</td>
-                                <td style="text-align: right;">—</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                ${renderStageTable('Вязальный', 'var(--info)', 'ph ph-needle')}
+                ${renderStageTable('Прошив', 'var(--primary-hover)', 'ph ph-scissors')}
+                ${renderStageTable('Упаковка', 'var(--success)', 'ph ph-package')}
             </div>
         `;
     }
@@ -2367,7 +2316,7 @@ class PmpDocument extends BaseDocument {
                 <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label class="form-label">Месяц планирования</label>
-                        <input type="month" class="form-control" name="month" id="pmp-month" value="${doc.month}" required>
+                        <input type="text" class="form-control" name="month" id="pmp-month" value="${doc.month}" placeholder="ГГГГ-ММ (например, 2026-06)" required pattern="\\d{4}-\\d{2}">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Кол-во рабочих дней</label>
@@ -2383,50 +2332,110 @@ class PmpDocument extends BaseDocument {
                     </div>
                 </div>
 
-                <h4 style="margin: 20px 0 10px 0;">Линии & Плановые мощности оборудования</h4>
-                <div class="table-wrapper">
-                    <table class="table-form" id="pmp-items-table">
-                        <thead>
-                            <tr>
-                                <th>Производственная линия</th>
-                                <th style="width: 130px;">Этап производства</th>
-                                <th class="col-qty">Кол-во оборуд.</th>
-                                <th class="col-qty">Часов работы</th>
-                                <th class="col-qty">Цикл (сек)</th>
-                                <th class="col-price">Плановый объем</th>
-                                <th class="col-btn"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Loaded in afterModalOpen -->
-                        </tbody>
-                    </table>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; font-size: 14px; color: var(--info);"><i class="ph ph-needle" style="margin-right: 6px;"></i>1. Вязальный этап</h4>
+                        <button type="button" class="btn btn-secondary btn-pmp-add" data-stage="Вязальный" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="ph ph-plus"></i>Добавить линию
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table-form" id="pmp-items-knitting-table">
+                            <thead>
+                                <tr>
+                                    <th>Производственная линия</th>
+                                    <th class="col-qty">Кол-во оборуд.</th>
+                                    <th class="col-qty">Часов работы</th>
+                                    <th class="col-qty">Норма сек</th>
+                                    <th class="col-price">Плановый объем сек</th>
+                                    <th class="col-price">Плановый объем пар</th>
+                                    <th class="col-btn"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-secondary" id="btn-pmp-add-line" style="margin-top: 8px;">
-                    <i class="ph ph-plus"></i>Добавить строку плана
-                </button>
+
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; font-size: 14px; color: var(--primary-hover);"><i class="ph ph-scissors" style="margin-right: 6px;"></i>2. Прошив</h4>
+                        <button type="button" class="btn btn-secondary btn-pmp-add" data-stage="Прошив" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="ph ph-plus"></i>Добавить линию
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table-form" id="pmp-items-sewing-table">
+                            <thead>
+                                <tr>
+                                    <th>Производственная линия</th>
+                                    <th class="col-qty">Кол-во оборуд.</th>
+                                    <th class="col-qty">Часов работы</th>
+                                    <th class="col-qty">Норма сек</th>
+                                    <th class="col-price">Плановый объем сек</th>
+                                    <th class="col-price">Плановый объем пар</th>
+                                    <th class="col-btn"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; font-size: 14px; color: var(--success);"><i class="ph ph-package" style="margin-right: 6px;"></i>3. Упаковка</h4>
+                        <button type="button" class="btn btn-secondary btn-pmp-add" data-stage="Упаковка" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="ph ph-plus"></i>Добавить линию
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table-form" id="pmp-items-packaging-table">
+                            <thead>
+                                <tr>
+                                    <th>Производственная линия</th>
+                                    <th class="col-qty">Кол-во оборуд.</th>
+                                    <th class="col-qty">Часов работы</th>
+                                    <th class="col-qty">Норма сек</th>
+                                    <th class="col-price">Плановый объем сек</th>
+                                    <th class="col-price">Плановый объем пар</th>
+                                    <th class="col-btn"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </form>
         `;
     }
 
     afterModalOpen(id, mode) {
         if (mode === 'edit') {
-            const itemsTableBody = document.querySelector('#pmp-items-table tbody');
             const workingDaysInput = document.getElementById('pmp-working-days');
+            const hoursNormInput = document.getElementById('pmp-hours-norm');
             const efficiencyInput = document.getElementById('pmp-efficiency');
             const item = id ? this.getRecords().find(x => x.id === id) : null;
 
             setupNumericFormatting(workingDaysInput, 'qty');
-            setupNumericFormatting(document.getElementById('pmp-hours-norm'), 'qty');
+            setupNumericFormatting(hoursNormInput, 'qty');
             setupNumericFormatting(efficiencyInput, 'qty');
 
             const updateAllRows = () => {
-                const trs = itemsTableBody.querySelectorAll('tr');
+                const trs = document.querySelectorAll('#doc-form tbody tr');
                 trs.forEach(tr => updateRowQty(tr));
             };
 
             workingDaysInput.addEventListener('input', updateAllRows);
             efficiencyInput.addEventListener('input', updateAllRows);
+            
+            hoursNormInput.addEventListener('input', () => {
+                const val = hoursNormInput.value;
+                document.querySelectorAll('.row-hours').forEach(input => {
+                    input.value = val;
+                });
+                updateAllRows();
+            });
 
             const updateRowQty = (tr) => {
                 const workingDays = parseFormattedNumber(workingDaysInput.value) || 0;
@@ -2436,17 +2445,32 @@ class PmpDocument extends BaseDocument {
                 const hoursPerDay = parseFormattedNumber(tr.querySelector('.row-hours').value) || 0;
                 const cycleTimeSec = parseFormattedNumber(tr.querySelector('.row-cycle-time').value) || 0;
 
+                const plannedSeconds = Math.round(machinesCount * workingDays * hoursPerDay * 3600 * (efficiency / 100));
                 let plannedQty = 0;
                 if (cycleTimeSec > 0) {
-                    plannedQty = Math.round((machinesCount * workingDays * hoursPerDay * 3600 * (efficiency / 100)) / cycleTimeSec);
+                    plannedQty = Math.round(plannedSeconds / cycleTimeSec);
                 }
 
+                tr.querySelector('.row-planned-seconds').value = formatQty(plannedSeconds);
                 tr.querySelector('.row-planned-qty').value = formatQty(plannedQty);
             };
 
-            const addRow = (rowVal = null) => {
+            const addRow = (stage, rowVal = null) => {
+                let tableId = '';
+                if (stage === 'Вязальный') tableId = '#pmp-items-knitting-table';
+                else if (stage === 'Прошив') tableId = '#pmp-items-sewing-table';
+                else if (stage === 'Упаковка') tableId = '#pmp-items-packaging-table';
+                
+                const tbody = document.querySelector(`${tableId} tbody`);
+                if (!tbody) return;
+
                 const tr = document.createElement('tr');
-                const stages = ['Вязание', 'Прошив', 'Упаковка'];
+                tr.setAttribute('data-stage', stage);
+
+                const defaultHours = hoursNormInput.value || '8';
+                const hoursVal = rowVal ? formatQty(rowVal.hoursPerDay) : defaultHours;
+                const machinesVal = rowVal ? formatQty(rowVal.machinesCount) : '5';
+                const cycleVal = rowVal ? formatQty(rowVal.cycleTimeSec) : '90';
 
                 tr.innerHTML = `
                     <td>
@@ -2455,19 +2479,17 @@ class PmpDocument extends BaseDocument {
                             ${state.lines.map(l => `<option value="${l.id}" ${rowVal && rowVal.lineId === l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
                         </select>
                     </td>
-                    <td>
-                        <select class="form-control row-stage" required>
-                            ${stages.map(st => `<option value="${st}" ${rowVal && rowVal.stage === st ? 'selected' : ''}>${st}</option>`).join('')}
-                        </select>
+                    <td class="col-qty">
+                        <input type="text" class="form-control row-machines col-qty" value="${machinesVal}" required>
                     </td>
                     <td class="col-qty">
-                        <input type="text" class="form-control row-machines col-qty" value="${rowVal ? formatQty(rowVal.machinesCount) : '5'}" required>
+                        <input type="text" class="form-control row-hours col-qty" value="${hoursVal}" required>
                     </td>
                     <td class="col-qty">
-                        <input type="text" class="form-control row-hours col-qty" value="${rowVal ? formatQty(rowVal.hoursPerDay) : '12'}" required>
+                        <input type="text" class="form-control row-cycle-time col-qty" value="${cycleVal}" required>
                     </td>
-                    <td class="col-qty">
-                        <input type="text" class="form-control row-cycle-time col-qty" value="${rowVal ? formatQty(rowVal.cycleTimeSec) : '90'}" required>
+                    <td class="col-price">
+                        <input type="text" class="form-control row-planned-seconds col-price" value="0" readonly style="background: rgba(255,255,255,0.03); text-align: right;">
                     </td>
                     <td class="col-price">
                         <input type="text" class="form-control row-planned-qty col-price" value="0" readonly style="background: rgba(255,255,255,0.03); text-align: right;">
@@ -2476,7 +2498,7 @@ class PmpDocument extends BaseDocument {
                         <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
-                itemsTableBody.appendChild(tr);
+                tbody.appendChild(tr);
 
                 const machinesIn = tr.querySelector('.row-machines');
                 const hoursIn = tr.querySelector('.row-hours');
@@ -2496,12 +2518,19 @@ class PmpDocument extends BaseDocument {
                 updateRowQty(tr);
             };
 
-            document.getElementById('btn-pmp-add-line').addEventListener('click', () => addRow());
+            document.querySelectorAll('.btn-pmp-add').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const stage = btn.getAttribute('data-stage');
+                    addRow(stage);
+                });
+            });
 
             if (item && item.items && item.items.length > 0) {
-                item.items.forEach(it => addRow(it));
+                item.items.forEach(it => addRow(it.stage, it));
             } else {
-                addRow();
+                addRow('Вязальный');
+                addRow('Прошив');
+                addRow('Упаковка');
             }
         }
     }
@@ -2515,16 +2544,25 @@ class PmpDocument extends BaseDocument {
         const hoursNorm = parseFormattedNumber(form.hoursNorm.value) || 0;
         const efficiencyCoef = parseFormattedNumber(form.efficiencyCoef.value) || 0;
 
-        const trs = document.querySelectorAll('#pmp-items-table tbody tr');
+        const trs = document.querySelectorAll('#doc-form tbody tr');
         const items = [];
         trs.forEach(tr => {
+            const lineId = tr.querySelector('.row-line').value;
+            const stage = tr.getAttribute('data-stage');
+            const machinesCount = parseFormattedNumber(tr.querySelector('.row-machines').value) || 0;
+            const hoursPerDay = parseFormattedNumber(tr.querySelector('.row-hours').value) || 0;
+            const cycleTimeSec = parseFormattedNumber(tr.querySelector('.row-cycle-time').value) || 0;
+            const plannedSec = parseFormattedNumber(tr.querySelector('.row-planned-seconds').value) || 0;
+            const plannedQty = parseFormattedNumber(tr.querySelector('.row-planned-qty').value) || 0;
+
             items.push({
-                lineId: tr.querySelector('.row-line').value,
-                stage: tr.querySelector('.row-stage').value,
-                machinesCount: parseFormattedNumber(tr.querySelector('.row-machines').value) || 0,
-                hoursPerDay: parseFormattedNumber(tr.querySelector('.row-hours').value) || 0,
-                cycleTimeSec: parseFormattedNumber(tr.querySelector('.row-cycle-time').value) || 0,
-                plannedQty: parseFormattedNumber(tr.querySelector('.row-planned-qty').value) || 0
+                lineId,
+                stage,
+                machinesCount,
+                hoursPerDay,
+                cycleTimeSec,
+                plannedSec,
+                plannedQty
             });
         });
 

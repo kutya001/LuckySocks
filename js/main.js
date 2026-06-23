@@ -585,6 +585,38 @@ function renderDashboard(container) {
 }
 
 function renderReports(container) {
+    container.innerHTML = `
+        <div class="view-tabs">
+            <button class="tab-btn active" id="btn-report-orders">Выполнение заказов</button>
+            <button class="tab-btn" id="btn-report-pmp-fact">Производственно мощностной план-Факт</button>
+        </div>
+        <div id="reports-tab-content"></div>
+    `;
+
+    const tabContent = document.getElementById('reports-tab-content');
+    const btnOrders = document.getElementById('btn-report-orders');
+    const btnPmpFact = document.getElementById('btn-report-pmp-fact');
+
+    const showOrdersReport = () => {
+        btnOrders.classList.add('active');
+        btnPmpFact.classList.remove('active');
+        renderOrderExecutionReport(tabContent);
+    };
+
+    const showPmpFactReport = () => {
+        btnOrders.classList.remove('active');
+        btnPmpFact.classList.add('active');
+        renderPmpFactReport(tabContent);
+    };
+
+    btnOrders.addEventListener('click', showOrdersReport);
+    btnPmpFact.addEventListener('click', showPmpFactReport);
+
+    // Initial render
+    showOrdersReport();
+}
+
+function renderOrderExecutionReport(container) {
     const progressData = getAggregateData();
     
     container.innerHTML = `
@@ -734,5 +766,141 @@ function renderReports(container) {
             }
         });
     });
+}
+
+function renderPmpFactReport(container) {
+    const pmpDocs = state.pmp || [];
+    const monthsSet = new Set();
+    pmpDocs.forEach(d => {
+        if (d.month) monthsSet.add(d.month);
+    });
+    const months = Array.from(monthsSet).sort().reverse();
+
+    if (months.length === 0) {
+        container.innerHTML = `
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; text-align: center;">
+                <p class="text-secondary">Нет созданных производственно-мощностных планов для построения отчета.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 16px;">
+            <label class="form-label" style="margin: 0; font-weight: 600;">Выберите месяц планирования:</label>
+            <select id="pmp-fact-month-select" class="form-control" style="width: 180px; margin: 0;">
+                ${months.map(m => `<option value="${m}">${m}</option>`).join('')}
+            </select>
+        </div>
+        <div id="pmp-fact-report-grid"></div>
+    `;
+
+    const select = document.getElementById('pmp-fact-month-select');
+    
+    const updatePmpFactGrid = (selectedMonth) => {
+        const gridContainer = document.getElementById('pmp-fact-report-grid');
+        if (!gridContainer) return;
+
+        // Filter PMP documents for the selected month
+        const monthDocs = pmpDocs.filter(d => d.month === selectedMonth);
+        
+        // Get actuals
+        const act = docMap.pmp.getActualsForMonth(selectedMonth);
+
+        // Sum planned values
+        let planKnQty = 0;
+        let planSwQty = 0;
+        let planPkQty = 0;
+
+        let planKnMachines = 0;
+        let planSwMachines = 0;
+        let planPkMachines = 0;
+
+        let planWorkingDays = 0;
+
+        monthDocs.forEach(doc => {
+            planWorkingDays += Number(doc.workingDays) || 0;
+            doc.items.forEach(it => {
+                const qty = Number(it.plannedQty) || 0;
+                const machines = Number(it.machinesCount) || 0;
+                if (it.stage === 'Вязальный' || it.stage === 'Вязание') {
+                    planKnQty += qty;
+                    planKnMachines += machines;
+                } else if (it.stage === 'Прошив') {
+                    planSwQty += qty;
+                    planSwMachines += machines;
+                } else if (it.stage === 'Упаковка') {
+                    planPkQty += qty;
+                    planPkMachines += machines;
+                }
+            });
+        });
+
+        // Calculate % execution
+        const pctKn = planKnQty > 0 ? Math.round((act.knittedQty / planKnQty) * 100) : 0;
+        const pctSw = planSwQty > 0 ? Math.round((act.sewnQty / planSwQty) * 100) : 0;
+        const pctPk = planPkQty > 0 ? Math.round((act.packagedQty / planPkQty) * 100) : 0;
+
+        gridContainer.innerHTML = `
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px;">
+                <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph ph-trend-up" style="color: var(--primary-hover);"></i>
+                    Сравнение План-Факт за ${selectedMonth}
+                </h3>
+                
+                <div class="table-wrapper">
+                    <table class="data-table" style="width: 100%; font-size: 13px;">
+                        <thead>
+                            <tr>
+                                <th>Этап производства</th>
+                                <th style="text-align: right;">План (объем)</th>
+                                <th style="text-align: right;">Факт (объем)</th>
+                                <th style="text-align: center;">Выполнение (%)</th>
+                                <th style="text-align: right;">План (оборуд.)</th>
+                                <th style="text-align: right;">Факт (оборуд.)</th>
+                                <th style="text-align: right;">План (дней)</th>
+                                <th style="text-align: right;">Факт (дней)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Вязальный</strong></td>
+                                <td style="text-align: right;">${formatQty(planKnQty)} шт.</td>
+                                <td style="text-align: right;">${formatQty(act.knittedQty)} шт.</td>
+                                <td style="text-align: center; font-weight: bold; color: ${pctKn >= 100 ? 'var(--success)' : (pctKn >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctKn}%</td>
+                                <td style="text-align: right;">${formatQty(planKnMachines)} шт.</td>
+                                <td style="text-align: right;">${formatQty(act.knittingMachines)} шт.</td>
+                                <td style="text-align: right;" rowspan="3">${formatQty(planWorkingDays)} дн.</td>
+                                <td style="text-align: right;" rowspan="3">${formatQty(act.workingDays)} дн.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Прошив</strong></td>
+                                <td style="text-align: right;">${formatQty(planSwQty)} пар</td>
+                                <td style="text-align: right;">${formatQty(act.sewnQty)} пар</td>
+                                <td style="text-align: center; font-weight: bold; color: ${pctSw >= 100 ? 'var(--success)' : (pctSw >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctSw}%</td>
+                                <td style="text-align: right;">${formatQty(planSwMachines)} шт.</td>
+                                <td style="text-align: right;">${formatQty(act.sewingMachines)} шт.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Упаковка</strong></td>
+                                <td style="text-align: right;">${formatQty(planPkQty)} пар</td>
+                                <td style="text-align: right;">${formatQty(act.packagedQty)} пар</td>
+                                <td style="text-align: center; font-weight: bold; color: ${pctPk >= 100 ? 'var(--success)' : (pctPk >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctPk}%</td>
+                                <td style="text-align: right;">${formatQty(planPkMachines)} шт.</td>
+                                <td style="text-align: right;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    };
+
+    select.addEventListener('change', () => {
+        updatePmpFactGrid(select.value);
+    });
+
+    // Initial load
+    updatePmpFactGrid(select.value);
 }
 
