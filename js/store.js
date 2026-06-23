@@ -176,6 +176,7 @@ const DEFAULT_STATE = {
         { id: 'rate_5', date: '2026-06-20', currency: 'CNY', rate: 12.05 }
     ],
     realizations: [],
+    pmp: [],
     settings: {
         companyName: 'LuckySocks',
         accountingCurrency: 'KGS',
@@ -206,6 +207,9 @@ function loadState() {
             }
             if (!state.realizations) {
                 state.realizations = [];
+            }
+            if (!state.pmp) {
+                state.pmp = [];
             }
         } catch (e) {
             console.error("Ошибка парсинга LocalStorage. Загрузка демо-данных.", e);

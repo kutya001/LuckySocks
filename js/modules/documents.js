@@ -2142,6 +2142,421 @@ class RealizationDocument extends BaseDocument {
     }
 }
 
+class PmpDocument extends BaseDocument {
+    constructor() {
+        super('pmp', 'Производственно-мощностные планы (ПМП)');
+    }
+
+    getColumns() {
+        return [
+            { id: 'month', label: 'Месяц планирования', filterable: true },
+            { id: 'workingDays', label: 'Рабочих дней', filterable: true },
+            { id: 'hoursNorm', label: 'Норма часов / день', filterable: false },
+            { id: 'efficiencyCoef', label: 'Коэф. выработки (%)', filterable: false },
+            { id: 'totals', label: 'Планируемый выпуск по этапам', filterable: false }
+        ];
+    }
+
+    getColumnValue(record, colId) {
+        if (colId === 'month') return `<strong>${record.month}</strong>`;
+        if (colId === 'workingDays') return `${record.workingDays} дн.`;
+        if (colId === 'hoursNorm') return `${record.hoursNorm} ч.`;
+        if (colId === 'efficiencyCoef') return `${record.efficiencyCoef}%`;
+        if (colId === 'totals') {
+            const kn = record.items.filter(it => it.stage === 'Вязание').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+            const sw = record.items.filter(it => it.stage === 'Прошив').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+            const pk = record.items.filter(it => it.stage === 'Упаковка').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+            return `
+                <div style="font-size: 11px;">
+                    <span class="badge badge-info">Вяз: ${formatQty(kn)} шт</span>
+                    <span class="badge badge-success">Прош: ${formatQty(sw)} пар</span>
+                    <span class="badge badge-warning">Упак: ${formatQty(pk)} пар</span>
+                </div>
+            `;
+        }
+        return record[colId] || '';
+    }
+
+    getActualsForMonth(month) {
+        const actualDaysSet = new Set();
+        const actualKnittingMachines = new Set();
+        const actualSewingMachines = new Set();
+        let actualKnittedQty = 0;
+        let actualSewnQty = 0;
+        let actualPackagedQty = 0;
+
+        // Releases (Knitting)
+        if (state.releases) {
+            state.releases.forEach(rel => {
+                if (rel.date && rel.date.startsWith(month)) {
+                    actualDaysSet.add(rel.date);
+                    if (rel.items) {
+                        rel.items.forEach(ri => {
+                            if (ri.machineNum) actualKnittingMachines.add(ri.machineNum);
+                            actualKnittedQty += Number(ri.qty) || 0;
+                        });
+                    }
+                }
+            });
+        }
+
+        // Sewings (Sewing)
+        if (state.sewings) {
+            state.sewings.forEach(sew => {
+                if (sew.date && sew.date.startsWith(month)) {
+                    actualDaysSet.add(sew.date);
+                    if (sew.items) {
+                        sew.items.forEach(si => {
+                            if (si.seamstressId) actualSewingMachines.add(si.seamstressId);
+                            actualSewnQty += Number(si.qty) || 0;
+                        });
+                    }
+                }
+            });
+        }
+
+        // Packagings (Packaging)
+        if (state.packagings) {
+            state.packagings.forEach(pack => {
+                if (pack.date && pack.date.startsWith(month)) {
+                    actualDaysSet.add(pack.date);
+                    if (pack.items) {
+                        pack.items.forEach(pi => {
+                            actualPackagedQty += Number(pi.qty) || 0;
+                        });
+                    }
+                }
+            });
+        }
+
+        return {
+            workingDays: actualDaysSet.size,
+            knittingMachines: actualKnittingMachines.size,
+            sewingMachines: actualSewingMachines.size,
+            knittedQty: actualKnittedQty,
+            sewnQty: actualSewnQty,
+            packagedQty: actualPackagedQty
+        };
+     }
+
+    getModalViewBody(id) {
+        const item = this.getRecords().find(x => x.id === id);
+        const act = this.getActualsForMonth(item.month);
+        
+        // Sum planned stage totals
+        const planKn = item.items.filter(it => it.stage === 'Вязание').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+        const planSw = item.items.filter(it => it.stage === 'Прошив').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+        const planPk = item.items.filter(it => it.stage === 'Упаковка').reduce((s, it) => s + (Number(it.plannedQty) || 0), 0);
+
+        // Calculate % execution
+        const pctKn = planKn > 0 ? Math.round((act.knittedQty / planKn) * 100) : 0;
+        const pctSw = planSw > 0 ? Math.round((act.sewnQty / planSw) * 100) : 0;
+        const pctPk = planPk > 0 ? Math.round((act.packagedQty / planPk) * 100) : 0;
+
+        // Plan machines count
+        const planKnMachines = item.items.filter(it => it.stage === 'Вязание').reduce((s, it) => s + (Number(it.machinesCount) || 0), 0);
+        const planSwMachines = item.items.filter(it => it.stage === 'Прошив').reduce((s, it) => s + (Number(it.machinesCount) || 0), 0);
+        const planPkMachines = item.items.filter(it => it.stage === 'Упаковка').reduce((s, it) => s + (Number(it.machinesCount) || 0), 0);
+
+        return `
+            <div class="view-details">
+                <div class="view-fields-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div class="view-field">
+                        <span class="view-field-label">Месяц планирования</span>
+                        <span class="view-field-value"><strong>${item.month}</strong></span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Рабочих дней (план)</span>
+                        <span class="view-field-value">${item.workingDays} дн.</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Норма часов в день</span>
+                        <span class="view-field-value">${item.hoursNorm} ч.</span>
+                    </div>
+                    <div class="view-field">
+                        <span class="view-field-label">Коэф. выработки</span>
+                        <span class="view-field-value">${item.efficiencyCoef}%</span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Спецификация плана мощностей</span>
+                    <table class="data-table" style="width: 100%; font-size: 12px; margin-bottom: 20px;">
+                        <thead>
+                            <tr>
+                                <th>Линия</th>
+                                <th>Этап производства</th>
+                                <th style="text-align: right; width: 110px;">Оборудование</th>
+                                <th style="text-align: right; width: 110px;">Рабочих часов</th>
+                                <th style="text-align: right; width: 110px;">Цикл (сек)</th>
+                                <th style="text-align: right; width: 150px;">Плановый объем</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${item.items.map(it => {
+                                const line = state.lines.find(l => l.id === it.lineId) || {};
+                                const unit = it.stage === 'Вязание' ? 'шт' : 'пар';
+                                return `
+                                    <tr>
+                                        <td><strong>${line.name || '—'}</strong></td>
+                                        <td><span class="badge badge-secondary">${it.stage}</span></td>
+                                        <td style="text-align: right;">${it.machinesCount} шт.</td>
+                                        <td style="text-align: right;">${it.hoursPerDay} ч/сут.</td>
+                                        <td style="text-align: right;">${it.cycleTimeSec} сек.</td>
+                                        <td style="text-align: right;"><strong>${formatQty(it.plannedQty)} ${unit}</strong></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <span class="text-secondary" style="font-size: 11px; display: block; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Сравнение План-Факт за ${item.month}</span>
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Этап производства</th>
+                                <th style="text-align: right;">План (объем)</th>
+                                <th style="text-align: right;">Факт (объем)</th>
+                                <th style="text-align: center;">Выполнение (%)</th>
+                                <th style="text-align: right;">План (оборуд.)</th>
+                                <th style="text-align: right;">Факт (оборуд.)</th>
+                                <th style="text-align: right;">План (дней)</th>
+                                <th style="text-align: right;">Факт (дней)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Вязальный - выпуск</strong></td>
+                                <td style="text-align: right;">${formatQty(planKn)} шт.</td>
+                                <td style="text-align: right;">${formatQty(act.knittedQty)} шт.</td>
+                                <td style="text-align: center; font-weight: bold; color: ${pctKn >= 100 ? 'var(--success)' : (pctKn >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctKn}%</td>
+                                <td style="text-align: right;">${planKnMachines} шт.</td>
+                                <td style="text-align: right;">${act.knittingMachines} шт.</td>
+                                <td style="text-align: right;" rowspan="3">${item.workingDays} дней</td>
+                                <td style="text-align: right;" rowspan="3">${act.workingDays} дней</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Прошив мыска</strong></td>
+                                <td style="text-align: right;">${formatQty(planSw)} пар</td>
+                                <td style="text-align: right;">${formatQty(act.sewnQty)} пар</td>
+                                <td style="text-align: center; font-weight: bold; color: ${pctSw >= 100 ? 'var(--success)' : (pctSw >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctSw}%</td>
+                                <td style="text-align: right;">${planSwMachines} швей</td>
+                                <td style="text-align: right;">${act.sewingMachines} швей</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Упаковка готовой продукции</strong></td>
+                                <td style="text-align: right;">${formatQty(planPk)} пар</td>
+                                <td style="text-align: right;">${formatQty(act.packagedQty)} пар</td>
+                                <td style="text-align: center; font-weight: bold; color: ${pctPk >= 100 ? 'var(--success)' : (pctPk >= 50 ? 'var(--info)' : 'var(--danger)')};">${pctPk}%</td>
+                                <td style="text-align: right;">${planPkMachines} столов</td>
+                                <td style="text-align: right;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    getModalEditBody(id) {
+        const doc = id ? this.getRecords().find(x => x.id === id) : { month: new Date().toISOString().slice(0, 7), workingDays: 22, hoursNorm: 8, efficiencyCoef: 80, items: [] };
+        return `
+            <form id="doc-form">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">Месяц планирования</label>
+                        <input type="month" class="form-control" name="month" id="pmp-month" value="${doc.month}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Кол-во рабочих дней</label>
+                        <input type="text" class="form-control" name="workingDays" id="pmp-working-days" value="${formatQty(doc.workingDays)}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Норма часов в день</label>
+                        <input type="text" class="form-control" name="hoursNorm" id="pmp-hours-norm" value="${formatQty(doc.hoursNorm)}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Коэф. выработки (%)</label>
+                        <input type="text" class="form-control" name="efficiencyCoef" id="pmp-efficiency" value="${formatQty(doc.efficiencyCoef)}" required>
+                    </div>
+                </div>
+
+                <h4 style="margin: 20px 0 10px 0;">Линии & Плановые мощности оборудования</h4>
+                <div class="table-wrapper">
+                    <table class="table-form" id="pmp-items-table">
+                        <thead>
+                            <tr>
+                                <th>Производственная линия</th>
+                                <th style="width: 130px;">Этап производства</th>
+                                <th class="col-qty">Кол-во оборуд.</th>
+                                <th class="col-qty">Часов работы</th>
+                                <th class="col-qty">Цикл (сек)</th>
+                                <th class="col-price">Плановый объем</th>
+                                <th class="col-btn"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loaded in afterModalOpen -->
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-secondary" id="btn-pmp-add-line" style="margin-top: 8px;">
+                    <i class="ph ph-plus"></i>Добавить строку плана
+                </button>
+            </form>
+        `;
+    }
+
+    afterModalOpen(id, mode) {
+        if (mode === 'edit') {
+            const itemsTableBody = document.querySelector('#pmp-items-table tbody');
+            const workingDaysInput = document.getElementById('pmp-working-days');
+            const efficiencyInput = document.getElementById('pmp-efficiency');
+            const item = id ? this.getRecords().find(x => x.id === id) : null;
+
+            setupNumericFormatting(workingDaysInput, 'qty');
+            setupNumericFormatting(document.getElementById('pmp-hours-norm'), 'qty');
+            setupNumericFormatting(efficiencyInput, 'qty');
+
+            const updateAllRows = () => {
+                const trs = itemsTableBody.querySelectorAll('tr');
+                trs.forEach(tr => updateRowQty(tr));
+            };
+
+            workingDaysInput.addEventListener('input', updateAllRows);
+            efficiencyInput.addEventListener('input', updateAllRows);
+
+            const updateRowQty = (tr) => {
+                const workingDays = parseFormattedNumber(workingDaysInput.value) || 0;
+                const efficiency = parseFormattedNumber(efficiencyInput.value) || 0;
+
+                const machinesCount = parseFormattedNumber(tr.querySelector('.row-machines').value) || 0;
+                const hoursPerDay = parseFormattedNumber(tr.querySelector('.row-hours').value) || 0;
+                const cycleTimeSec = parseFormattedNumber(tr.querySelector('.row-cycle-time').value) || 0;
+
+                let plannedQty = 0;
+                if (cycleTimeSec > 0) {
+                    plannedQty = Math.round((machinesCount * workingDays * hoursPerDay * 3600 * (efficiency / 100)) / cycleTimeSec);
+                }
+
+                tr.querySelector('.row-planned-qty').value = formatQty(plannedQty);
+            };
+
+            const addRow = (rowVal = null) => {
+                const tr = document.createElement('tr');
+                const stages = ['Вязание', 'Прошив', 'Упаковка'];
+
+                tr.innerHTML = `
+                    <td>
+                        <select class="form-control row-line" required>
+                            <option value="">-- Выберите линию --</option>
+                            ${state.lines.map(l => `<option value="${l.id}" ${rowVal && rowVal.lineId === l.id ? 'selected' : ''}>${l.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-control row-stage" required>
+                            ${stages.map(st => `<option value="${st}" ${rowVal && rowVal.stage === st ? 'selected' : ''}>${st}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="col-qty">
+                        <input type="text" class="form-control row-machines col-qty" value="${rowVal ? formatQty(rowVal.machinesCount) : '5'}" required>
+                    </td>
+                    <td class="col-qty">
+                        <input type="text" class="form-control row-hours col-qty" value="${rowVal ? formatQty(rowVal.hoursPerDay) : '12'}" required>
+                    </td>
+                    <td class="col-qty">
+                        <input type="text" class="form-control row-cycle-time col-qty" value="${rowVal ? formatQty(rowVal.cycleTimeSec) : '90'}" required>
+                    </td>
+                    <td class="col-price">
+                        <input type="text" class="form-control row-planned-qty col-price" value="0" readonly style="background: rgba(255,255,255,0.03); text-align: right;">
+                    </td>
+                    <td class="col-btn">
+                        <button type="button" class="btn btn-danger btn-icon-only btn-remove-row"><i class="ph ph-trash"></i></button>
+                    </td>
+                `;
+                itemsTableBody.appendChild(tr);
+
+                const machinesIn = tr.querySelector('.row-machines');
+                const hoursIn = tr.querySelector('.row-hours');
+                const cycleIn = tr.querySelector('.row-cycle-time');
+
+                setupNumericFormatting(machinesIn, 'qty');
+                setupNumericFormatting(hoursIn, 'qty');
+                setupNumericFormatting(cycleIn, 'qty');
+
+                const changeHandler = () => updateRowQty(tr);
+                machinesIn.addEventListener('input', changeHandler);
+                hoursIn.addEventListener('input', changeHandler);
+                cycleIn.addEventListener('input', changeHandler);
+
+                tr.querySelector('.btn-remove-row').addEventListener('click', () => tr.remove());
+
+                updateRowQty(tr);
+            };
+
+            document.getElementById('btn-pmp-add-line').addEventListener('click', () => addRow());
+
+            if (item && item.items && item.items.length > 0) {
+                item.items.forEach(it => addRow(it));
+            } else {
+                addRow();
+            }
+        }
+    }
+
+    saveRow(id) {
+        const form = document.getElementById('doc-form');
+        if (!form.reportValidity()) return;
+
+        const month = form.month.value;
+        const workingDays = parseFormattedNumber(form.workingDays.value) || 0;
+        const hoursNorm = parseFormattedNumber(form.hoursNorm.value) || 0;
+        const efficiencyCoef = parseFormattedNumber(form.efficiencyCoef.value) || 0;
+
+        const trs = document.querySelectorAll('#pmp-items-table tbody tr');
+        const items = [];
+        trs.forEach(tr => {
+            items.push({
+                lineId: tr.querySelector('.row-line').value,
+                stage: tr.querySelector('.row-stage').value,
+                machinesCount: parseFormattedNumber(tr.querySelector('.row-machines').value) || 0,
+                hoursPerDay: parseFormattedNumber(tr.querySelector('.row-hours').value) || 0,
+                cycleTimeSec: parseFormattedNumber(tr.querySelector('.row-cycle-time').value) || 0,
+                plannedQty: parseFormattedNumber(tr.querySelector('.row-planned-qty').value) || 0
+            });
+        });
+
+        if (items.length === 0) {
+            alert('Спецификация плана должна содержать хотя бы одну строку!');
+            return;
+        }
+
+        const newDoc = {
+            id: id || 'pmp_' + Date.now(),
+            date: new Date().toISOString().split('T')[0],
+            month,
+            workingDays,
+            hoursNorm,
+            efficiencyCoef,
+            items
+        };
+
+        if (id) {
+            const idx = state.pmp.findIndex(x => x.id === id);
+            state.pmp[idx] = newDoc;
+        } else {
+            state.pmp.push(newDoc);
+        }
+
+        saveState();
+        closeModal();
+        showToast('Мощностной план успешно сохранен!', 'success');
+        this.renderTable(this.currentViewport);
+    }
+}
+
 // Map of document classes
 const docMap = {
     'orders': new OrderDocument(),
@@ -2150,7 +2565,8 @@ const docMap = {
     'releases': new ReleaseDocument(),
     'sewings': new SewingDocument(),
     'packagings': new PackagingDocument(),
-    'realizations': new RealizationDocument()
+    'realizations': new RealizationDocument(),
+    'pmp': new PmpDocument()
 };
 
 

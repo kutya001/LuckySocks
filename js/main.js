@@ -85,6 +85,11 @@ function renderCurrentTab(subTab = null) {
             pageSubtitle.textContent = 'Очередь запуска в производство';
             docMap.planning.renderTable(viewport);
             break;
+        case 'pmp':
+            pageTitle.textContent = 'Мощностной план (ПМП)';
+            pageSubtitle.textContent = 'Производственно-мощностное планирование';
+            docMap.pmp.renderTable(viewport);
+            break;
         case 'releases':
             pageTitle.textContent = 'Вязальный - выпуск';
             pageSubtitle.textContent = 'Выработка вязального цеха (ПФ)';
