@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socks.Pro — Учёт производства носков</title>
+    <!-- Google Fonts: Inter for UI text, Outfit for headings -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons via CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="ph-bold ph-sketch-logo brand-icon"></i>
+                <span class="brand-name" id="brand-name">SOCKS<span>.PRO</span></span>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i class="ph ph-chart-pie-slice"></i>
+                    <span>Панель управления</span>
+                </a>
+                
+                <div class="menu-category">НСИ</div>
+                <a href="#" class="nav-item" data-tab="directories">
+                    <i class="ph ph-folders"></i>
+                    <span>Справочники</span>
+                </a>
+                
+                <div class="menu-category">Реализация</div>
+                <a href="#" class="nav-item" data-tab="orders">
+                    <i class="ph ph-shopping-cart"></i>
+                    <span>Заказы покупателей</span>
+                </a>
+                
+                <div class="menu-category">Производство</div>
+                <a href="#" class="nav-item" data-tab="specifications">
+                    <i class="ph ph-file-text"></i>
+                    <span>Спецификации</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="planning">
+                    <i class="ph ph-calendar"></i>
+                    <span>Планирование и запуск</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="releases">
+                    <i class="ph ph-needle"></i>
+                    <span>Выпуск полуфабрикатов</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="sewings">
+                    <i class="ph ph-scissors"></i>
+                    <span>Прошив мыска</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="packagings">
+                    <i class="ph ph-package"></i>
+                    <span>Упаковка</span>
+                </a>
+                
+                <div class="menu-category">Аналитика</div>
+                <a href="#" class="nav-item" data-tab="reports">
+                    <i class="ph ph-presentation-chart"></i>
+                    <span>Мониторинг этапов</span>
+                </a>
+
+                <div class="menu-category">Настройки</div>
+                <a href="#" class="nav-item" data-tab="settings">
+                    <i class="ph ph-sliders"></i>
+                    <span>Учётная политика</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">
+                        <i class="ph ph-user-circle-gear"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="username">Бригадир Николай</span>
+                        <span class="role">Администратор смены</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header bar -->
+            <header class="content-header">
+                <div class="header-title-container">
+                    <h1 id="page-title">Панель управления</h1>
+                    <p id="page-subtitle" class="text-secondary">Сводные показатели и оперативный статус линий</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary btn-icon-only" id="btn-reset-data" title="Сбросить и перезагрузить демо-данные">
+                        <i class="ph ph-arrows-clockwise"></i>
+                    </button>
+                    <button class="btn btn-primary" id="btn-quick-order">
+                        <i class="ph ph-plus"></i>
+                        <span>Новый заказ</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Active View Container -->
+            <div class="view-viewport" id="viewport">
+                <!-- Content will be rendered dynamically by JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast System -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Generic Modal Window -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 id="modal-title">Название модального окна</h3>
+                <button class="modal-close" id="btn-modal-close">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Modal content goes here -->
+            </div>
+            <div class="modal-footer" id="modal-footer">
+                <!-- Modal footer actions go here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Script loading -->
+    <script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/core/BaseEntityComponent.js"></script>
+    <script src="js/core/BaseDocument.js"></script>
+    <script src="js/modules/settings.js"></script>
+    <script src="js/modules/directories.js"></script>
+    <script src="js/modules/documents.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
